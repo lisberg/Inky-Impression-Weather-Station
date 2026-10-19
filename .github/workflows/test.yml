@@ -10,4 +10,4 @@ jobs:
           python-version: "3.11"  # Raspberry Pi OS Bookworm
       - run: pip install pillow requests pytest
       - run: python -m pytest -q
-      - run: bash -n deploy/*.sh
+      - run: for f in deploy/*.sh; do bash -n "$f"; done
