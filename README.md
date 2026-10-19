@@ -1,91 +1,76 @@
 # Inky Impression Weather Station
 
-Inky Impression eInk display from Pimoroni driven by a Raspberry Pi Zero (or any other Raspberry Pi) to display a seven day weather forecast.
+A configurable weather station for the Pimoroni Inky Impression 7.3" e-ink
+display (800×480), driven by a Raspberry Pi Zero 2 W.
 
-Based on the original work by [Rainer Bunger](https://github.com/rbunger/Inky-wHAT-Weather-Station)
+| Day | Night |
+|---|---|
+| ![Overview, day](docs/preview-overview-day.png) | ![Overview, night](docs/preview-overview-night.png) |
+| ![Week, day](docs/preview-week-day.png) | ![Week, night](docs/preview-week-night.png) |
 
-![Example Screenshot](https://talktech.info/wp-content/uploads/2023/05/IMG_20230527_174858.jpg)
+- Forecasts from **Yr / MET Norway** or **SMHI**, chosen per location. No API key needed.
+- Any number of saved locations.
+- Two layouts: `overview` (now, next 12 hours, 7 days) and `week` (8 day tiles).
+- Clock, date, sunrise and sunset, with midnight sun and polar night handled.
+- Night theme (light text on black) after sunset, or forced on/off.
+- Keeps showing the last forecast when the network drops, with a notice.
 
-## Getting Weather information
+The screen redraws every 15 minutes by default. A full refresh of the 7.3"
+panel takes about 30 seconds and flashes, so a ticking clock isn't practical;
+the clock shows the time of the last redraw.
 
-The weather information is fetched from OpenWeather:
+## Install
 
-[OpenWeather](https://openweathermap.org)
-
-Here you need to create an account and an API key. 
-
-Put the code into a file called apikey.py 
-
-You can use the sample file as follows
-
-```
-mv apikey.py.sample apikey.py
-nano apikey.py
-```
-
-* api_key = 'your openweathermap API Key'
-* lat="your latitude"
-* lon="your longtitude"
-
-
-## Setting up the screen
-
-The Pimoroni Inky Impression display requires a bunch of software to be installed. My recommendation is to follow the description in a Pimoroni tutorial:
-
-[Inky Impression](https://shop.pimoroni.com/products/inky-impression)
-
-The installation is done by executing a bash script, and it takes a while. Everything is installed for Python 2 and 3 which isn't necessary from my point of view, so you might consider deselecting version 2 in the script before running it.
-
-# Running the script
-
-There are two ways to run this code
+Set up the panel with Pimoroni's [inky library](https://github.com/pimoroni/inky)
+first, then:
 
 ```
-python3 weather.py
+git clone https://github.com/lisberg/Inky-Impression-Weather-Station.git
+cd Inky-Impression-Weather-Station
+pip3 install -r requirements.txt
+cp config.example.json config.json
+nano config.json
+python3 -m station --once
 ```
 
-Running this will run this application in a loop and never stop
+To run it on boot:
 
 ```
-python3 once.py
+sudo cp Inky-Impression-Weather-Station.service /etc/systemd/system/
+sudo systemctl enable --now Inky-Impression-Weather-Station
 ```
 
-Running this will run the code, update the screen and stop. Use this version if you want to put the script in cron job.
+## Configuration
 
-## Running as a cron job
+`config.json` (any key you leave out takes its default):
 
-Run this the root cron as follows
+| Key | Meaning |
+|---|---|
+| `locations` | List of `{"name", "lat", "lon", "provider"}`; provider is `yr` or `smhi` (SMHI covers the Nordic area only). A location can also set its own `timezone`. |
+| `active_location` | Index into `locations` of the one shown. |
+| `timezone` | IANA zone, e.g. `Europe/Stockholm`. |
+| `language` | `sv` or `en`. |
+| `layout` | `overview` or `week`. |
+| `refresh_minutes` | Minutes between redraws, at least 5. |
+| `night_mode` | `auto` (dark between sunset and sunrise), `on` or `off`. |
+| `quiet_hours` | `{"start": "23:00", "end": "06:00"}` pauses redraws overnight; empty strings disable it. |
+| `display` | `rotate` (0/90/180/270) and `saturation` (0–1). |
+| `contact` | Your e-mail or URL. MET Norway asks every client to identify itself. |
+
+## Development
+
+Everything except the panel driver runs on any machine:
 
 ```
-sudo crontab -e
+pip3 install pillow requests pytest
+python3 -m pytest
+python3 tools/preview.py                     # renders docs/preview-*.png from sample data
+python3 -m station --preview out.png         # live data, written to a PNG
 ```
-
-This will open the crontab file to be edited
-
-```
-* */6 * * * /home/pi/Inky-Impression-Weather-Station/once.py >/dev/null 2>&1
-```
-
-This example will run the update every 6 hours
 
 ## Credit
 
-* The icons are provided by Erik Flowers.
-* The font is from David Jonathan Ross.
-* Original code by Rainer Bunger
-
-## Thank you too:
-Icons and code table are from Erik Flowers:
-
-[Weather Icons](https://github.com/erikflowers/weather-icons)
-
-For easy access to this tool, I have uploaded pre-convered images, but they are still the oringal authors work.
-
-The font is from David Jonathan Ross:
-
-[Bunjee](https://github.com/djrrb/bungee)
-
-
-## Licensing
-
-The weather icons and the font are licensed under [SIL OFL 1.1](http://scripts.sil.org/OFL).
+- Original code by [Rainer Bunger](https://github.com/rbunger/Inky-wHAT-Weather-Station).
+- Weather icons by [Erik Flowers](https://github.com/erikflowers/weather-icons), SIL OFL 1.1.
+- Atkinson Hyperlegible font by the Braille Institute, SIL OFL 1.1.
+- Weather data from [MET Norway](https://api.met.no) (CC BY 4.0) and [SMHI](https://opendata.smhi.se) (CC BY 4.0).
