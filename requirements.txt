@@ -1,0 +1,4 @@
+inky[rpi]>=2.0
+pillow>=9.2
+requests>=2.25
+flask>=2.2

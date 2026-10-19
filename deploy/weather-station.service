@@ -1,0 +1,16 @@
+[Unit]
+Description=Inky Impression weather station
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=weather
+Group=weather
+SupplementaryGroups=gpio spi i2c
+WorkingDirectory=/opt/weather-station
+ExecStart=/opt/weather-station/.venv/bin/python -m station
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

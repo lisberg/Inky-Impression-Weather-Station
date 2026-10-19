@@ -1,91 +1,152 @@
 # Inky Impression Weather Station
 
-Inky Impression eInk display from Pimoroni driven by a Raspberry Pi Zero (or any other Raspberry Pi) to display a seven day weather forecast.
+A configurable weather station for the Pimoroni Inky Impression 7.3" e-ink
+display (800×480), driven by a Raspberry Pi Zero 2 W.
 
-Based on the original work by [Rainer Bunger](https://github.com/rbunger/Inky-wHAT-Weather-Station)
+| Day | Night |
+|---|---|
+| ![Overview, day](docs/preview-overview-day.png) | ![Overview, night](docs/preview-overview-night.png) |
+| ![Week, day](docs/preview-week-day.png) | ![Week, night](docs/preview-week-night.png) |
 
-![Example Screenshot](https://talktech.info/wp-content/uploads/2023/05/IMG_20230527_174858.jpg)
+- Forecasts from **Yr / MET Norway** or **SMHI**, chosen per location. No API key needed.
+- Any number of saved locations.
+- Two layouts: `overview` (now, next 12 hours, 7 days) and `week` (8 day tiles).
+- Clock, date, sunrise and sunset, with midnight sun and polar night handled.
+- Night theme (light text on black) after sunset, or forced on/off.
+- Keeps showing the last forecast when the network drops, with a notice.
 
-## Getting Weather information
+The screen redraws every 15 minutes by default. A full refresh of the 7.3"
+panel takes about 30 seconds and flashes, so a ticking clock isn't practical;
+the clock shows the time of the last redraw.
 
-The weather information is fetched from OpenWeather:
+## Dashboard
 
-[OpenWeather](https://openweathermap.org)
+Open `http://vaderstation.local:8080` (or the station's Tailscale name) from
+any phone or computer on the same network. From there you can:
 
-Here you need to create an account and an API key. 
+- see what the screen shows and refresh it;
+- search for places and add, reorder, show or remove them;
+- change layout, night mode, language, refresh interval and quiet hours;
+- add WiFi networks (all are remembered, highest priority wins), change
+  their priority or remove them.
 
-Put the code into a file called apikey.py 
+<img src="docs/dashboard.png" width="320" alt="Dashboard on a phone">
 
-You can use the sample file as follows
+There is no password by default, since it is only reachable on the home
+network and your tailnet. Set `dashboard.password` in the config to require one.
 
-```
-mv apikey.py.sample apikey.py
-nano apikey.py
-```
+## Buttons
 
-* api_key = 'your openweathermap API Key'
-* lat="your latitude"
-* lon="your longtitude"
+| Button | Press | Hold 3 s |
+|---|---|---|
+| A | next location | |
+| B | previous location | |
+| C | next layout | |
+| D | refresh now | info screen: WiFi, IP, Tailscale name, dashboard address |
 
+Presses within about 1.5 seconds are combined into one redraw, so pressing A
+three times skips straight to the third location.
 
-## Setting up the screen
+## Install
 
-The Pimoroni Inky Impression display requires a bunch of software to be installed. My recommendation is to follow the description in a Pimoroni tutorial:
-
-[Inky Impression](https://shop.pimoroni.com/products/inky-impression)
-
-The installation is done by executing a bash script, and it takes a while. Everything is installed for Python 2 and 3 which isn't necessary from my point of view, so you might consider deselecting version 2 in the script before running it.
-
-# Running the script
-
-There are two ways to run this code
-
-```
-python3 weather.py
-```
-
-Running this will run this application in a loop and never stop
-
-```
-python3 once.py
-```
-
-Running this will run the code, update the screen and stop. Use this version if you want to put the script in cron job.
-
-## Running as a cron job
-
-Run this the root cron as follows
+Flash **Raspberry Pi OS Lite** (Bookworm or later) with Raspberry Pi Imager.
+In its settings, set the hostname (e.g. `vaderstation`), a user, your WiFi and
+enable SSH. Then, on the Pi:
 
 ```
-sudo crontab -e
+sudo apt-get install -y git
+sudo git clone https://github.com/lisberg/Inky-Impression-Weather-Station.git /opt/weather-station
+sudo /opt/weather-station/deploy/install.sh
+sudo reboot
 ```
 
-This will open the crontab file to be edited
+The installer enables SPI/I2C, creates a `weather` service user and a Python
+environment, and installs two services: `weather-station` (the display) and
+`weather-netwatch` (the WiFi fallback below). It also turns on automatic
+security updates and caps the logs at 50 MB to spare the SD card. Settings live
+in `/opt/weather-station/config.json`.
+
+## Setting it up for someone else
+
+Do all of this at home, before handing the station over:
+
+1. **Remote access.** Create an auth key at
+   [Tailscale → Keys](https://login.tailscale.com/admin/settings/keys) and run
+   `sudo /opt/weather-station/deploy/tailscale.sh tskey-auth-… vaderstation`.
+   In the Tailscale admin console, open the machine and choose
+   **Disable key expiry**. You can then reach it from anywhere with
+   `ssh <user>@vaderstation` (Tailscale SSH, no keys to manage).
+2. **Their WiFi.** Add it in advance in the dashboard, or with
+   `sudo /opt/weather-station/deploy/add-wifi.sh "Their network" "password"`.
+   Saved networks are all remembered, and the station joins whichever is in range.
+3. **Updates.** Later, from anywhere: `ssh <user>@vaderstation sudo /opt/weather-station/deploy/update.sh`.
+
+If no saved network can be reached for two minutes (new router, changed
+password), the station opens its own WiFi network, **Vaderstation-setup**, and
+the screen shows what to do:
+
+![Setup screen](docs/preview-setup.png)
+
+With nobody connected, it drops the hotspot every 10 minutes to retry the
+saved networks, so a router that was only restarting is picked up by itself.
+The SSID and password are under `setup_hotspot` in the config.
+
+Holding **D** shows the info screen, which is handy when helping over the phone:
+
+![Info screen](docs/preview-info.png)
+
+### Running without installing
+
+For development, or on a Pi set up by hand:
 
 ```
-* */6 * * * /home/pi/Inky-Impression-Weather-Station/once.py >/dev/null 2>&1
+pip3 install -r requirements.txt
+cp config.example.json config.json
+python3 -m station --once
 ```
 
-This example will run the update every 6 hours
+## Enclosure
+
+A printable bezel, back shell and desk stand are in [`enclosure/`](enclosure),
+with print settings, hardware list and assembly steps. They're parametric, so
+measure your board first.
+
+<img src="docs/enclosure-front.png" width="420" alt="Enclosure on its stand">
+
+## Configuration
+
+`config.json` (any key you leave out takes its default):
+
+| Key | Meaning |
+|---|---|
+| `locations` | List of `{"name", "lat", "lon", "provider"}`; provider is `yr` or `smhi` (SMHI covers the Nordic area only). A location can also set its own `timezone`. |
+| `active_location` | Index into `locations` of the one shown. |
+| `timezone` | IANA zone, e.g. `Europe/Stockholm`. |
+| `language` | `sv` or `en`. |
+| `layout` | `overview` or `week`. |
+| `refresh_minutes` | Minutes between redraws, at least 5. |
+| `night_mode` | `auto` (dark between sunset and sunrise), `on` or `off`. |
+| `quiet_hours` | `{"start": "23:00", "end": "06:00"}` pauses redraws overnight; empty strings disable it. |
+| `display` | `rotate` (0/90/180/270) and `saturation` (0–1). |
+| `buttons` | `pins`: BCM pins for A–D, default `[5, 6, 16, 24]`; `enabled`. |
+| `dashboard` | `enabled`, `port` (8080) and an optional `password`. |
+| `setup_hotspot` | `ssid` and `password` (8+ characters) of the fallback WiFi. |
+| `contact` | Your e-mail or URL. MET Norway asks every client to identify itself. |
+
+## Development
+
+Everything except the panel driver runs on any machine:
+
+```
+pip3 install pillow requests flask pytest
+python3 -m pytest
+python3 tools/preview.py                     # renders docs/preview-*.png from sample data
+python3 -m station --preview out.png         # live data, written to a PNG
+```
 
 ## Credit
 
-* The icons are provided by Erik Flowers.
-* The font is from David Jonathan Ross.
-* Original code by Rainer Bunger
-
-## Thank you too:
-Icons and code table are from Erik Flowers:
-
-[Weather Icons](https://github.com/erikflowers/weather-icons)
-
-For easy access to this tool, I have uploaded pre-convered images, but they are still the oringal authors work.
-
-The font is from David Jonathan Ross:
-
-[Bunjee](https://github.com/djrrb/bungee)
-
-
-## Licensing
-
-The weather icons and the font are licensed under [SIL OFL 1.1](http://scripts.sil.org/OFL).
+- Original code by [Rainer Bunger](https://github.com/rbunger/Inky-wHAT-Weather-Station).
+- Weather icons by [Erik Flowers](https://github.com/erikflowers/weather-icons), SIL OFL 1.1.
+- Atkinson Hyperlegible font by the Braille Institute, SIL OFL 1.1.
+- Weather data from [MET Norway](https://api.met.no) (CC BY 4.0) and [SMHI](https://opendata.smhi.se) (CC BY 4.0).
