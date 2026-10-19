@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="{{ c.language }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t.title }}</title>
+<style>
+  :root { --bg:#f6f5f2; --card:#fff; --fg:#1d1d1b; --muted:#6b6a66; --line:#e2e0da;
+          --accent:#c8102e; --ok:#2e7d32; --err:#b00020; --btn:#1d1d1b; --btnfg:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161615; --card:#222220; --fg:#eeede9; --muted:#a3a29d; --line:#3a3936;
+            --accent:#ff5a6e; --ok:#81c784; --err:#ff8a80; --btn:#eeede9; --btnfg:#161615; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding:20px 16px 8px; max-width:760px; margin:auto; display:flex;
+           justify-content:space-between; align-items:baseline; gap:12px; }
+  header h1 { margin:0; font-size:24px; }
+  nav a { color:var(--muted); margin-left:12px; text-decoration:none; font-size:14px; }
+  main { max-width:760px; margin:auto; padding:0 16px 40px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px;
+            padding:16px; margin:14px 0; }
+  h2 { margin:0 0 12px; font-size:18px; }
+  img.preview { width:100%; height:auto; border-radius:6px; border:1px solid var(--line);
+                aspect-ratio:800/480; background:var(--bg); }
+  .row { display:flex; gap:8px; align-items:center; padding:10px 0; border-top:1px solid var(--line);
+         flex-wrap:wrap; }
+  .row:first-of-type { border-top:0; }
+  .grow { flex:1 1 180px; min-width:0; }
+  .muted { color:var(--muted); font-size:14px; }
+  .tag { font-size:12px; padding:2px 8px; border-radius:99px; border:1px solid var(--line); }
+  .tag.on { background:var(--ok); color:#fff; border-color:var(--ok); }
+  form.inline { display:inline; margin:0; }
+  label { display:block; font-size:14px; color:var(--muted); margin:10px 0 4px; }
+  input, select { width:100%; font:inherit; padding:9px 10px; border-radius:8px;
+                  border:1px solid var(--line); background:var(--bg); color:var(--fg); }
+  input[type=checkbox] { width:auto; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0 12px; }
+  button { font:inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--btn);
+           background:var(--btn); color:var(--btnfg); cursor:pointer; }
+  button.ghost { background:transparent; color:var(--fg); border-color:var(--line); }
+  button.danger { background:transparent; color:var(--err); border-color:var(--line); }
+  .actions { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+  .flash { padding:10px 14px; border-radius:8px; margin:14px 0; background:var(--card);
+           border:1px solid var(--line); }
+  .flash.error { border-color:var(--err); color:var(--err); }
+  .banner { background:var(--accent); color:#fff; border-radius:12px; padding:14px 16px;
+            margin:14px 0; font-weight:600; }
+  details summary { cursor:pointer; color:var(--muted); margin-top:12px; }
+  dl { display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; margin:0; }
+  dt { color:var(--muted); } dd { margin:0; overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ t.title }}</h1>
+  <nav><a href="#locations">{{ t.locations }}</a><a href="#display">{{ t.display }}</a><a href="#wifi">{{ t.wifi }}</a></nav>
+</header>
+<main>
+{% if info.hotspot %}<div class="banner">{{ t.setup_banner }}</div>{% endif %}
+{% for category, message in get_flashed_messages(with_categories=true) %}
+  <div class="flash {{ category }}">{{ message }}</div>
+{% endfor %}
+
+<section id="screen">
+  <h2>{{ t.screen }}</h2>
+  <img class="preview" src="{{ url_for('preview') }}" alt="{{ t.screen }}">
+  <div class="actions">
+    <form class="inline" method="post" action="{{ url_for('refresh') }}"><button>{{ t.refresh }}</button></form>
+  </div>
+</section>
+
+<section id="locations">
+  <h2>{{ t.locations }}</h2>
+  {% for loc in c.locations %}
+  <div class="row">
+    <div class="grow"><strong>{{ loc.name }}</strong>
+      <div class="muted">{{ "%.4f"|format(loc.lat) }}, {{ "%.4f"|format(loc.lon) }} · {{ loc.provider|upper }}</div></div>
+    {% if loop.index0 == c.active_location %}<span class="tag on">{{ t.showing }}</span>
+    {% else %}<form class="inline" method="post" action="{{ url_for('location_action', i=loop.index0, action='show') }}"><button class="ghost">{{ t.show }}</button></form>{% endif %}
+    {% if not loop.first %}<form class="inline" method="post" action="{{ url_for('location_action', i=loop.index0, action='up') }}"><input type="hidden" name="anchor" value="#locations"><button class="ghost" aria-label="{{ t.up }}">↑</button></form>{% endif %}
+    {% if not loop.last %}<form class="inline" method="post" action="{{ url_for('location_action', i=loop.index0, action='down') }}"><input type="hidden" name="anchor" value="#locations"><button class="ghost" aria-label="{{ t.down }}">↓</button></form>{% endif %}
+    {% if c.locations|length > 1 %}<form class="inline" method="post" action="{{ url_for('location_action', i=loop.index0, action='delete') }}" onsubmit="return confirm('{{ t.confirm_delete }}')"><input type="hidden" name="anchor" value="#locations"><button class="danger">{{ t.delete }}</button></form>{% endif %}
+  </div>
+  {% endfor %}
+
+  <form method="get" action="{{ url_for('index') }}#locations">
+    <label for="q">{{ t.search }}</label>
+    <div class="row" style="border:0;padding:0"><input class="grow" id="q" name="q" value="{{ query }}" placeholder="{{ t.search_hint }}"><button>{{ t.search }}</button></div>
+  </form>
+  {% if query %}
+    {% if search_error %}<div class="flash error">{{ search_error }}</div>
+    {% elif not results %}<p class="muted">{{ t.no_results }}</p>{% endif %}
+    {% for r in results %}
+    <form class="row" method="post" action="{{ url_for('location_add') }}">
+      <div class="grow"><strong>{{ r.name }}</strong><div class="muted">{{ r.label }}</div></div>
+      <input type="hidden" name="name" value="{{ r.name }}"><input type="hidden" name="lat" value="{{ r.lat }}">
+      <input type="hidden" name="lon" value="{{ r.lon }}"><input type="hidden" name="anchor" value="#locations">
+      <select name="provider" style="width:auto">{% for p in providers %}<option value="{{ p }}">{{ p|upper }}</option>{% endfor %}</select>
+      <button>{{ t.add }}</button>
+    </form>
+    {% endfor %}
+  {% endif %}
+  <details>
+    <summary>{{ t.manual }}</summary>
+    <form method="post" action="{{ url_for('location_add') }}">
+      <input type="hidden" name="anchor" value="#locations">
+      <div class="grid">
+        <div><label>{{ t.name }}</label><input name="name" required></div>
+        <div><label>{{ t.lat }}</label><input name="lat" inputmode="decimal" required></div>
+        <div><label>{{ t.lon }}</label><input name="lon" inputmode="decimal" required></div>
+        <div><label>{{ t.provider }}</label><select name="provider">{% for p in providers %}<option value="{{ p }}">{{ p|upper }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="actions"><button>{{ t.add }}</button></div>
+    </form>
+  </details>
+</section>
+
+<section id="display">
+  <h2>{{ t.display }}</h2>
+  <form method="post" action="{{ url_for('settings') }}">
+    <input type="hidden" name="anchor" value="#display">
+    <div class="grid">
+      <div><label>{{ t.layout }}</label><select name="layout">{% for l in layouts %}<option value="{{ l }}" {{ 'selected' if c.layout == l }}>{{ t[l] }}</option>{% endfor %}</select></div>
+      <div><label>{{ t.night_mode }}</label><select name="night_mode">{% for m in ['auto','on','off'] %}<option value="{{ m }}" {{ 'selected' if c.night_mode == m }}>{{ t[m] }}</option>{% endfor %}</select></div>
+      <div><label>{{ t.language }}</label><select name="language"><option value="sv" {{ 'selected' if c.language == 'sv' }}>Svenska</option><option value="en" {{ 'selected' if c.language == 'en' }}>English</option></select></div>
+      <div><label>{{ t.refresh_minutes }}</label><input type="number" name="refresh_minutes" min="5" max="240" value="{{ c.refresh_minutes }}"></div>
+      <div><label>{{ t.quiet }}</label><input type="time" name="quiet_start" value="{{ c.quiet_hours.start }}"></div>
+      <div><label>{{ t.and }}</label><input type="time" name="quiet_end" value="{{ c.quiet_hours.end }}"></div>
+      <div><label>{{ t.rotate }}</label><select name="rotate">{% for r in [0, 180] %}<option value="{{ r }}" {{ 'selected' if c.display.rotate == r }}>{{ r }}°</option>{% endfor %}</select></div>
+      <div><label>{{ t.contact }}</label><input type="email" name="contact" value="{{ c.contact }}"></div>
+    </div>
+    <div class="actions"><button>{{ t.save }}</button></div>
+  </form>
+</section>
+
+<section id="wifi">
+  <h2>{{ t.wifi }}</h2>
+  <h3 class="muted" style="font-weight:500;margin:0">{{ t.saved_networks }}</h3>
+  {% for n in saved %}
+  <div class="row">
+    <div class="grow"><strong>{{ n.ssid }}</strong></div>
+    {% if n.active %}<span class="tag on">{{ t.connected }}</span>{% endif %}
+    <form class="inline" method="post" action="{{ url_for('wifi_priority') }}">
+      <input type="hidden" name="name" value="{{ n.name }}">
+      <select name="priority" aria-label="{{ t.priority }}" style="width:auto" onchange="this.form.submit()">{% for p in range(0, 11) %}<option value="{{ p }}" {{ 'selected' if n.priority == p }}>{{ t.priority }} {{ p }}</option>{% endfor %}</select>
+    </form>
+    <form class="inline" method="post" action="{{ url_for('wifi_delete') }}" onsubmit="return confirm('{{ t.confirm_delete }}')">
+      <input type="hidden" name="name" value="{{ n.name }}"><button class="danger">{{ t.delete }}</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  {% if visible %}<h3 class="muted" style="font-weight:500;margin:16px 0 0">{{ t.visible }}</h3>{% endif %}
+  {% for v in visible[:12] %}
+  <details class="row" style="display:block">
+    <summary style="color:var(--fg);margin:0"><strong>{{ v.ssid }}</strong> <span class="muted">{{ v.signal }}%{{ ' 🔒' if v.secure }}</span></summary>
+    <form method="post" action="{{ url_for('wifi_add') }}">
+      <input type="hidden" name="ssid" value="{{ v.ssid }}">
+      {% if v.secure %}<label>{{ t.password }}</label><input type="password" name="password" minlength="8" maxlength="63" required autocomplete="off">{% endif %}
+      <label><input type="checkbox" name="connect" value="1" {{ 'checked' if info.hotspot }}> {{ t.connect_now }}</label>
+      <div class="actions"><button>{{ t.add }}</button></div>
+    </form>
+  </details>
+  {% endfor %}
+
+  <details>
+    <summary>{{ t.add_network }}</summary>
+    <form method="post" action="{{ url_for('wifi_add') }}">
+      <div class="grid">
+        <div><label>{{ t.name }}</label><input name="ssid" required></div>
+        <div><label>{{ t.password }}</label><input type="password" name="password" maxlength="63" autocomplete="off"></div>
+        <div><label>{{ t.priority }}</label><input type="number" name="priority" min="0" max="10" value="0"></div>
+      </div>
+      <label><input type="checkbox" name="connect" value="1"> {{ t.connect_now }}</label>
+      <div class="actions"><button>{{ t.add }}</button></div>
+    </form>
+  </details>
+</section>
+
+<section id="system">
+  <h2>{{ t.system }}</h2>
+  <dl>
+    <dt>{{ t.hostname }}</dt><dd>{{ info.hostname }}</dd>
+    <dt>WiFi</dt><dd>{{ info.ssid or '–' }}</dd>
+    <dt>IP</dt><dd>{{ info.ips|join(', ') or '–' }}</dd>
+    <dt>{{ t.remote }}</dt><dd>{% if info.tailscale %}{{ info.tailscale.name }} {{ info.tailscale.ip }}{% else %}{{ t.not_connected }}{% endif %}</dd>
+    <dt>{{ t.version }}</dt><dd>{{ version }}</dd>
+  </dl>
+</section>
+</main>
+</body>
+</html>

@@ -55,9 +55,17 @@ class Station:
         self.showing_info = False
         self._actions = []
         self._lock = threading.Lock()
+        self.config_lock = threading.RLock()  # buttons and dashboard both rewrite the config
 
     def load_config(self):
         return cfgmod.load(self.config_path)
+
+    def update_config(self, change):
+        """Load, apply `change(cfg)`, validate and save, all under one lock."""
+        with self.config_lock:
+            cfg = self.load_config()
+            change(cfg)
+            return cfgmod.save(cfg, self.config_path)
 
     # --- input --------------------------------------------------------------
     def press(self, action):
@@ -70,21 +78,22 @@ class Station:
             actions, self._actions = self._actions, []
         if not actions:
             return cfg
-        changed = False
-        for action in actions:
-            self.showing_info = action == "info"
-            n = len(cfg["locations"])
-            if action in ("next_location", "previous_location"):
-                step = 1 if action == "next_location" else -1
-                cfg["active_location"] = (cfg["active_location"] + step) % n
-                changed = True
-            elif action == "next_layout":
-                names = list(LAYOUTS)
-                cfg["layout"] = names[(names.index(cfg["layout"]) + 1) % len(names)]
-                changed = True
-        if changed:
-            cfg = cfgmod.save(cfg, self.config_path)
-            log.info("now showing %s (%s)", cfgmod.active_location(cfg)["name"], cfg["layout"])
+        moves = [a for a in actions if a in ("next_location", "previous_location", "next_layout")]
+        self.showing_info = actions[-1] == "info"
+        if not moves:
+            return cfg
+
+        def change(c):
+            for action in moves:
+                if action == "next_layout":
+                    names = list(LAYOUTS)
+                    c["layout"] = names[(names.index(c["layout"]) + 1) % len(names)]
+                else:
+                    step = 1 if action == "next_location" else -1
+                    c["active_location"] = (c["active_location"] + step) % len(c["locations"])
+
+        cfg = self.update_config(change)
+        log.info("now showing %s (%s)", cfgmod.active_location(cfg)["name"], cfg["layout"])
         return cfg
 
     # --- drawing ------------------------------------------------------------
@@ -156,6 +165,9 @@ def main(argv=None):
         return
     cfg = station.load_config()
     held = buttons.attach(station, cfg["buttons"]["pins"]) if cfg["buttons"]["enabled"] else []
+    if cfg["dashboard"]["enabled"]:
+        from . import web
+        web.serve_in_background(station, cfg["dashboard"]["port"])
     try:
         station.run()
     finally:

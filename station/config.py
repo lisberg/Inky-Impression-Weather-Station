@@ -33,6 +33,8 @@ DEFAULTS = {
     "display": {"rotate": 0, "saturation": 0.5},
     # BCM pins of buttons A-D on the Inky Impression
     "buttons": {"pins": [5, 6, 16, 24], "enabled": True},
+    # web dashboard; set a password to require one (user name is ignored)
+    "dashboard": {"enabled": True, "port": 8080, "password": ""},
     # access point shown when no saved WiFi is reachable (WPA2 needs 8+ chars)
     "setup_hotspot": {"ssid": "Vaderstation-setup", "password": "vaderstation"},
     # MET Norway requires a contact in the User-Agent of every request

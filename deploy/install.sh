@@ -12,7 +12,7 @@ APP=/opt/weather-station
 echo "== packages"
 apt-get update
 apt-get install -y git python3-venv python3-pil python3-requests python3-gpiozero \
-    python3-lgpio network-manager iw avahi-daemon unattended-upgrades
+    python3-lgpio python3-flask network-manager iw avahi-daemon unattended-upgrades
 
 echo "== SPI and I2C for the Inky panel"
 raspi-config nonint do_spi 0
@@ -36,6 +36,10 @@ mkdir -p "$APP/state"
 chown -R weather:weather "$APP/state" "$APP/config.json"
 git config --system --add safe.directory "$APP"
 
+echo "== let the dashboard manage WiFi"
+install -m 644 "$APP/deploy/50-weather-station.rules" /etc/polkit-1/rules.d/
+systemctl reload polkit 2>/dev/null || systemctl restart polkit || true
+
 echo "== keep logs small on the SD card"
 mkdir -p /etc/systemd/journald.conf.d
 printf '[Journal]\nSystemMaxUse=50M\n' > /etc/systemd/journald.conf.d/weather-station.conf
@@ -50,5 +54,5 @@ systemctl daemon-reload
 systemctl enable --now weather-netwatch.service weather-station.service
 
 echo
-echo "Done. Edit $APP/config.json, then: sudo systemctl restart weather-station"
+echo "Done. Dashboard: http://$(hostname).local:8080"
 echo "If SPI was just enabled, reboot once: sudo reboot"

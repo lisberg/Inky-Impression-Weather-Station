@@ -19,6 +19,22 @@ The screen redraws every 15 minutes by default. A full refresh of the 7.3"
 panel takes about 30 seconds and flashes, so a ticking clock isn't practical;
 the clock shows the time of the last redraw.
 
+## Dashboard
+
+Open `http://vaderstation.local:8080` (or the station's Tailscale name) from
+any phone or computer on the same network. From there you can:
+
+- see what the screen shows and refresh it;
+- search for places and add, reorder, show or remove them;
+- change layout, night mode, language, refresh interval and quiet hours;
+- add WiFi networks (all are remembered, highest priority wins), change
+  their priority or remove them.
+
+<img src="docs/dashboard.png" width="320" alt="Dashboard on a phone">
+
+There is no password by default, since it is only reachable on the home
+network and your tailnet. Set `dashboard.password` in the config to require one.
+
 ## Buttons
 
 | Button | Press | Hold 3 s |
@@ -60,7 +76,7 @@ Do all of this at home, before handing the station over:
    In the Tailscale admin console, open the machine and choose
    **Disable key expiry**. You can then reach it from anywhere with
    `ssh <user>@vaderstation` (Tailscale SSH, no keys to manage).
-2. **Their WiFi.** Save it in advance:
+2. **Their WiFi.** Add it in advance in the dashboard, or with
    `sudo /opt/weather-station/deploy/add-wifi.sh "Their network" "password"`.
    Saved networks are all remembered, and the station joins whichever is in range.
 3. **Updates.** Later, from anywhere: `ssh <user>@vaderstation sudo /opt/weather-station/deploy/update.sh`.
@@ -105,6 +121,7 @@ python3 -m station --once
 | `quiet_hours` | `{"start": "23:00", "end": "06:00"}` pauses redraws overnight; empty strings disable it. |
 | `display` | `rotate` (0/90/180/270) and `saturation` (0–1). |
 | `buttons` | `pins`: BCM pins for A–D, default `[5, 6, 16, 24]`; `enabled`. |
+| `dashboard` | `enabled`, `port` (8080) and an optional `password`. |
 | `setup_hotspot` | `ssid` and `password` (8+ characters) of the fallback WiFi. |
 | `contact` | Your e-mail or URL. MET Norway asks every client to identify itself. |
 
@@ -113,7 +130,7 @@ python3 -m station --once
 Everything except the panel driver runs on any machine:
 
 ```
-pip3 install pillow requests pytest
+pip3 install pillow requests flask pytest
 python3 -m pytest
 python3 tools/preview.py                     # renders docs/preview-*.png from sample data
 python3 -m station --preview out.png         # live data, written to a PNG

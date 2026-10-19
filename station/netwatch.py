@@ -14,6 +14,7 @@ import subprocess
 import time
 
 from . import config as cfgmod
+from . import wifi
 from .netinfo import HOTSPOT_FILE
 
 log = logging.getLogger("netwatch")
@@ -34,10 +35,12 @@ def nmcli(*args, check=True):
 
 
 class NetWatch:
-    def __init__(self, run=nmcli, clock=time.monotonic, hotspot_file=HOTSPOT_FILE):
+    def __init__(self, run=nmcli, clock=time.monotonic, hotspot_file=HOTSPOT_FILE,
+                 scan_file=wifi.SCAN_FILE):
         self.run = run
         self.clock = clock
         self.hotspot_file = hotspot_file
+        self.scan_file = scan_file
         self.offline_since = None
         self.hotspot_since = None
 
@@ -60,6 +63,10 @@ class NetWatch:
 
     # --- hotspot ----------------------------------------------------------
     def start_hotspot(self, ssid, password):
+        try:  # the radio can't scan in AP mode, so remember what was visible
+            wifi.save_scan(lambda *a, **k: self.run(*a), path=self.scan_file)
+        except Exception:
+            log.exception("scan before hotspot failed")
         self.run("connection", "delete", CON_NAME, check=False)
         self.run("connection", "add", "type", "wifi", "ifname", IFACE, "con-name", CON_NAME,
                  "autoconnect", "no", "ssid", ssid, "mode", "ap", "ipv4.method", "shared",

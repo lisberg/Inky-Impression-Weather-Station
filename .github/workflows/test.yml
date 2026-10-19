@@ -8,6 +8,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"  # Raspberry Pi OS Bookworm
-      - run: pip install pillow requests pytest
+      - run: pip install pillow requests flask pytest
       - run: python -m pytest -q
       - run: for f in deploy/*.sh; do bash -n "$f"; done

@@ -81,7 +81,8 @@ class FakeNM:
 
 def test_netwatch_hotspot_cycle(tmp_path, monkeypatch):
     nm, now = FakeNM(), [0.0]
-    w = netwatch.NetWatch(run=nm, clock=lambda: now[0], hotspot_file=str(tmp_path / "hs.json"))
+    w = netwatch.NetWatch(run=nm, clock=lambda: now[0], hotspot_file=str(tmp_path / "hs.json"),
+                          scan_file=str(tmp_path / "scan.json"))
     monkeypatch.setattr(w, "hotspot_clients", lambda: 0)
     w.step("S", "password1")
     now[0] = netwatch.GRACE - 1
@@ -97,7 +98,8 @@ def test_netwatch_hotspot_cycle(tmp_path, monkeypatch):
 
 def test_netwatch_leaves_hotspot_when_network_chosen(tmp_path):
     nm, now = FakeNM(), [0.0]
-    w = netwatch.NetWatch(run=nm, clock=lambda: now[0], hotspot_file=str(tmp_path / "hs.json"))
+    w = netwatch.NetWatch(run=nm, clock=lambda: now[0], hotspot_file=str(tmp_path / "hs.json"),
+                          scan_file=str(tmp_path / "scan.json"))
     w.start_hotspot("S", "password1")
     nm.state, nm.con = "connected", "Hemma"
     w.step("S", "password1")
