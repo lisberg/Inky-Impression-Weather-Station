@@ -31,6 +31,10 @@ DEFAULTS = {
     # no screen refresh in this window (local time, "HH:MM"); empty = never pause
     "quiet_hours": {"start": "", "end": ""},
     "display": {"rotate": 0, "saturation": 0.5},
+    # BCM pins of buttons A-D on the Inky Impression
+    "buttons": {"pins": [5, 6, 16, 24], "enabled": True},
+    # access point shown when no saved WiFi is reachable (WPA2 needs 8+ chars)
+    "setup_hotspot": {"ssid": "Vaderstation-setup", "password": "vaderstation"},
     # MET Norway requires a contact in the User-Agent of every request
     "contact": "",
 }
@@ -76,6 +80,11 @@ def validate(cfg):
         raise ConfigError("refresh_minutes must be at least 5")
     if cfg["display"].get("rotate") not in (0, 90, 180, 270):
         raise ConfigError("display.rotate must be 0, 90, 180 or 270")
+    if len(str(cfg["setup_hotspot"].get("password", ""))) < 8:
+        raise ConfigError("setup_hotspot.password must be at least 8 characters")
+    pins = cfg["buttons"].get("pins")
+    if not (isinstance(pins, list) and len(pins) == 4 and all(isinstance(p, int) for p in pins)):
+        raise ConfigError("buttons.pins must be four BCM pin numbers")
     return cfg
 
 

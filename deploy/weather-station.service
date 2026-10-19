@@ -4,8 +4,11 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-WorkingDirectory=/home/pi/Inky-Impression-Weather-Station
-ExecStart=/usr/bin/python3 -m station
+User=weather
+Group=weather
+SupplementaryGroups=gpio spi i2c
+WorkingDirectory=/opt/weather-station
+ExecStart=/opt/weather-station/.venv/bin/python -m station
 Restart=always
 RestartSec=10s
 

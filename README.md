@@ -19,25 +19,74 @@ The screen redraws every 15 minutes by default. A full refresh of the 7.3"
 panel takes about 30 seconds and flashes, so a ticking clock isn't practical;
 the clock shows the time of the last redraw.
 
+## Buttons
+
+| Button | Press | Hold 3 s |
+|---|---|---|
+| A | next location | |
+| B | previous location | |
+| C | next layout | |
+| D | refresh now | info screen: WiFi, IP, Tailscale name, dashboard address |
+
+Presses within about 1.5 seconds are combined into one redraw, so pressing A
+three times skips straight to the third location.
+
 ## Install
 
-Set up the panel with Pimoroni's [inky library](https://github.com/pimoroni/inky)
-first, then:
+Flash **Raspberry Pi OS Lite** (Bookworm or later) with Raspberry Pi Imager.
+In its settings, set the hostname (e.g. `vaderstation`), a user, your WiFi and
+enable SSH. Then, on the Pi:
 
 ```
-git clone https://github.com/lisberg/Inky-Impression-Weather-Station.git
-cd Inky-Impression-Weather-Station
+sudo apt-get install -y git
+sudo git clone https://github.com/lisberg/Inky-Impression-Weather-Station.git /opt/weather-station
+sudo /opt/weather-station/deploy/install.sh
+sudo reboot
+```
+
+The installer enables SPI/I2C, creates a `weather` service user and a Python
+environment, and installs two services: `weather-station` (the display) and
+`weather-netwatch` (the WiFi fallback below). It also turns on automatic
+security updates and caps the logs at 50 MB to spare the SD card. Settings live
+in `/opt/weather-station/config.json`.
+
+## Setting it up for someone else
+
+Do all of this at home, before handing the station over:
+
+1. **Remote access.** Create an auth key at
+   [Tailscale → Keys](https://login.tailscale.com/admin/settings/keys) and run
+   `sudo /opt/weather-station/deploy/tailscale.sh tskey-auth-… vaderstation`.
+   In the Tailscale admin console, open the machine and choose
+   **Disable key expiry**. You can then reach it from anywhere with
+   `ssh <user>@vaderstation` (Tailscale SSH, no keys to manage).
+2. **Their WiFi.** Save it in advance:
+   `sudo /opt/weather-station/deploy/add-wifi.sh "Their network" "password"`.
+   Saved networks are all remembered, and the station joins whichever is in range.
+3. **Updates.** Later, from anywhere: `ssh <user>@vaderstation sudo /opt/weather-station/deploy/update.sh`.
+
+If no saved network can be reached for two minutes (new router, changed
+password), the station opens its own WiFi network, **Vaderstation-setup**, and
+the screen shows what to do:
+
+![Setup screen](docs/preview-setup.png)
+
+With nobody connected, it drops the hotspot every 10 minutes to retry the
+saved networks, so a router that was only restarting is picked up by itself.
+The SSID and password are under `setup_hotspot` in the config.
+
+Holding **D** shows the info screen, which is handy when helping over the phone:
+
+![Info screen](docs/preview-info.png)
+
+### Running without installing
+
+For development, or on a Pi set up by hand:
+
+```
 pip3 install -r requirements.txt
 cp config.example.json config.json
-nano config.json
 python3 -m station --once
-```
-
-To run it on boot:
-
-```
-sudo cp Inky-Impression-Weather-Station.service /etc/systemd/system/
-sudo systemctl enable --now Inky-Impression-Weather-Station
 ```
 
 ## Configuration
@@ -55,6 +104,8 @@ sudo systemctl enable --now Inky-Impression-Weather-Station
 | `night_mode` | `auto` (dark between sunset and sunrise), `on` or `off`. |
 | `quiet_hours` | `{"start": "23:00", "end": "06:00"}` pauses redraws overnight; empty strings disable it. |
 | `display` | `rotate` (0/90/180/270) and `saturation` (0–1). |
+| `buttons` | `pins`: BCM pins for A–D, default `[5, 6, 16, 24]`; `enabled`. |
+| `setup_hotspot` | `ssid` and `password` (8+ characters) of the fallback WiFi. |
 | `contact` | Your e-mail or URL. MET Norway asks every client to identify itself. |
 
 ## Development

@@ -22,3 +22,11 @@ for layout in render.LAYOUTS:
         out = os.path.join(ROOT, "docs", "preview-%s-%s.png" % (layout, "night" if night else "day"))
         img.save(out)
         print(out)
+
+cfg = {"language": "sv"}
+info = {"hostname": "vaderstation", "ips": ["192.168.1.20"], "ssid": "Hemma",
+        "tailscale": {"ip": "100.101.12.7", "name": "vaderstation.tail1234.ts.net"}}
+render.render_info(info, cfg, datetime(2026, 10, 19, 16, 50), "2.0.0").save(
+    os.path.join(ROOT, "docs", "preview-info.png"))
+render.render_setup({"ssid": "Vaderstation-setup", "password": "vaderstation",
+                     "url": "http://10.42.0.1:8080"}, cfg).save(os.path.join(ROOT, "docs", "preview-setup.png"))

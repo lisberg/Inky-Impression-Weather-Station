@@ -235,3 +235,46 @@ def render(forecast, location, now, tz, lang="sv", layout="overview", night=Fals
         c.icon((WIDTH // 2, 250), "cloud-refresh", 140, "fg")
         c.text((WIDTH // 2, 380), strings(lang)["error"], 30, anchor="mm")
     return c.img
+
+
+def render_info(info, cfg, now, version):
+    """Addresses and status, for helping someone over the phone."""
+    s = strings(cfg["language"])
+    c = Canvas("day")
+    c.text((16, 34), s["info"], 40, bold=True, anchor="lm")
+    c.text((WIDTH - 16, 34), now.strftime("%H:%M"), 34, bold=True, anchor="rm")
+    c.hline(70)
+    ts = info.get("tailscale")
+    rows = [
+        (s["network"], info.get("ssid") or s["no_wifi"]),
+        ("IP", ", ".join(info.get("ips") or []) or "–"),
+        (s["remote"], ("%s  %s" % (ts.get("name") or "", ts.get("ip") or "")).strip()
+         if ts else s["not_connected"]),
+        (s["dashboard"], "http://%s.local:8080" % info.get("hostname", "")),
+        ("Host", info.get("hostname", "")),
+        ("Version", version),
+    ]
+    y = 110
+    for label, value in rows:
+        c.text((24, y), label, 26, anchor="lm")
+        c.text((230, y), value, 28, bold=True, anchor="lm")
+        y += 52
+    c.hline(424, width=1)
+    c.text((WIDTH // 2, 452), s["buttons_help"], 22, anchor="mm")
+    return c.img
+
+
+def render_setup(hotspot, cfg):
+    """Shown while the setup hotspot is up: three steps to get back online."""
+    s = strings(cfg["language"])
+    c = Canvas("day")
+    c.icon((70, 52), "cloud-refresh", 60, "rain")
+    c.text((130, 52), s["setup_title"], 34, bold=True, anchor="lm")
+    c.hline(100)
+    values = [hotspot.get("ssid", ""), hotspot.get("password", ""), hotspot.get("url", "")]
+    y = 160
+    for step, value in zip(s["setup_steps"], values):
+        c.text((40, y), step, 28, anchor="lm")
+        c.text((80, y + 50), value, 44, role="red", bold=True, anchor="lm")
+        y += 110
+    return c.img
