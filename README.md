@@ -105,6 +105,14 @@ cp config.example.json config.json
 python3 -m station --once
 ```
 
+## Enclosure
+
+A printable bezel, back shell and desk stand are in [`enclosure/`](enclosure),
+with print settings, hardware list and assembly steps. They're parametric, so
+measure your board first.
+
+<img src="docs/enclosure-front.png" width="420" alt="Enclosure on its stand">
+
 ## Configuration
 
 `config.json` (any key you leave out takes its default):
