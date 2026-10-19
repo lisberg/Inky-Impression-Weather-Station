@@ -23,7 +23,7 @@ CON_NAME = "station-setup"
 GRACE = 120
 HOTSPOT_WINDOW = 10 * 60
 POLL = 15
-X
+HOTSPOT_URL = "http://10.42.0.1:8080"  # NetworkManager shared-mode address + dashboard port
 
 
 def nmcli(*args, check=True):
