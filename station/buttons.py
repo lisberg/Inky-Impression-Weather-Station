@@ -15,8 +15,13 @@ def attach(station, pins):
     except ImportError:
         log.warning("gpiozero not available, buttons disabled")
         return []
-    a, b, c, d = (Button(pin, pull_up=True, bounce_time=0.05, hold_time=HOLD_SECONDS)
-                  for pin in pins)
+    try:
+        a, b, c, d = [Button(pin, pull_up=True, bounce_time=0.05, hold_time=HOLD_SECONDS)
+                      for pin in pins]
+    except Exception:
+        # a broken GPIO setup must not keep the forecast off the screen
+        log.exception("could not claim button pins %s, buttons disabled", pins)
+        return []
     a.when_pressed = lambda: station.press("next_location")
     b.when_pressed = lambda: station.press("previous_location")
     c.when_pressed = lambda: station.press("next_layout")

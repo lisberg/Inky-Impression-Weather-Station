@@ -8,6 +8,10 @@ User=weather
 Group=weather
 SupplementaryGroups=gpio spi i2c
 WorkingDirectory=/opt/weather-station
+# gpiozero must use lgpio: its sysfs fallback fails on current kernels. lgpio keeps
+# notification pipes in LG_WD, which has to be writable by the service user.
+Environment=GPIOZERO_PIN_FACTORY=lgpio LG_WD=/run/weather-station
+RuntimeDirectory=weather-station
 ExecStart=/opt/weather-station/.venv/bin/python -m station
 Restart=always
 RestartSec=10s
