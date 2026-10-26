@@ -83,6 +83,17 @@ def test_add_show_reorder_delete_location(env):
     assert st.wake.is_set()
 
 
+def test_change_location_provider(env):
+    st, nm, client = env
+    client.post("/locations/0/provider", data={"provider": "smhi"}, headers=H)
+    assert st.load_config()["locations"][0]["provider"] == "smhi"
+    r = client.post("/locations/0/provider", data={"provider": "bogus"}, headers=H,
+                    follow_redirects=True)
+    assert "unknown provider" in r.get_data(as_text=True)
+    assert st.load_config()["locations"][0]["provider"] == "smhi"
+    assert 'value="smhi" selected' in client.get("/").get_data(as_text=True)
+
+
 def test_bad_location_is_reported(env):
     st, nm, client = env
     r = client.post("/locations/add", data={"name": "X", "lat": "abc", "lon": "1"}, headers=H,

@@ -169,6 +169,9 @@ def create_app(station, wifi_run=wifi.nmcli, geocoder=geocode):
             if action == "show":
                 c["active_location"] = i
                 return
+            if action == "provider":
+                locs[i]["provider"] = request.form.get("provider", "")
+                return
             if action == "delete":
                 if len(locs) == 1:
                     raise cfgmod.ConfigError("at least one location is required")

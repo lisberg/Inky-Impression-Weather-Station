@@ -76,7 +76,10 @@
   {% for loc in c.locations %}
   <div class="row">
     <div class="grow"><strong>{{ loc.name }}</strong>
-      <div class="muted">{{ "%.4f"|format(loc.lat) }}, {{ "%.4f"|format(loc.lon) }} · {{ loc.provider|upper }}</div></div>
+      <div class="muted">{{ "%.4f"|format(loc.lat) }}, {{ "%.4f"|format(loc.lon) }} ·
+        <form class="inline" method="post" action="{{ url_for('location_action', i=loop.index0, action='provider') }}"><input type="hidden" name="anchor" value="#locations">
+          <select name="provider" style="width:auto" aria-label="{{ t.provider }}" onchange="this.form.submit()">{% for p in providers %}<option value="{{ p }}"{% if p == loc.provider %} selected{% endif %}>{{ p|upper }}</option>{% endfor %}</select>
+          <noscript><button class="ghost">{{ t.save }}</button></noscript></form></div></div>
     {% if loop.index0 == c.active_location %}<span class="tag on">{{ t.showing }}</span>
     {% else %}<form class="inline" method="post" action="{{ url_for('location_action', i=loop.index0, action='show') }}"><button class="ghost">{{ t.show }}</button></form>{% endif %}
     {% if not loop.first %}<form class="inline" method="post" action="{{ url_for('location_action', i=loop.index0, action='up') }}"><input type="hidden" name="anchor" value="#locations"><button class="ghost" aria-label="{{ t.up }}">↑</button></form>{% endif %}
