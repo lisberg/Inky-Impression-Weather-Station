@@ -1,5 +1,6 @@
 """Thin wrapper around Pimoroni's inky library, with a PNG fallback."""
 import logging
+import os
 
 log = logging.getLogger(__name__)
 
@@ -38,5 +39,7 @@ def open_display(preview_path=None):
     try:
         return InkyDisplay()
     except Exception as exc:  # no panel, no library, or not a Pi
-        log.warning("no Inky display (%s); writing preview.png instead", exc)
-        return PngDisplay("preview.png")
+        # systemd's RuntimeDirectory is writable; the install folder belongs to root
+        path = os.path.join(os.environ.get("RUNTIME_DIRECTORY", "."), "preview.png")
+        log.warning("no Inky display (%s); writing %s instead", exc, path)
+        return PngDisplay(path)
