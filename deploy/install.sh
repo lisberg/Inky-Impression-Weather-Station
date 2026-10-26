@@ -32,8 +32,10 @@ echo "== python environment"
 
 echo "== config"
 mkdir -p "$APP/state"
-[ -f "$APP/config.json" ] || cp "$APP/config.example.json" "$APP/config.json"
-chown -R weather:weather "$APP/state" "$APP/config.json"
+# config lives in state/: saving writes a temp file next to it, and $APP belongs to root
+[ -f "$APP/config.json" ] && [ ! -f "$APP/state/config.json" ] && mv "$APP/config.json" "$APP/state/config.json"
+[ -f "$APP/state/config.json" ] || cp "$APP/config.example.json" "$APP/state/config.json"
+chown -R weather:weather "$APP/state"
 git config --system --add safe.directory "$APP"
 
 echo "== let the dashboard manage WiFi"

@@ -64,7 +64,7 @@ The installer enables SPI/I2C, creates a `weather` service user and a Python
 environment, and installs two services: `weather-station` (the display) and
 `weather-netwatch` (the WiFi fallback below). It also turns on automatic
 security updates and caps the logs at 50 MB to spare the SD card. Settings live
-in `/opt/weather-station/config.json`.
+in `/opt/weather-station/state/config.json`.
 
 ## Setting it up for someone else
 
