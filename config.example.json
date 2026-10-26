@@ -11,5 +11,5 @@
   "night_mode": "auto",
   "quiet_hours": {"start": "", "end": ""},
   "display": {"rotate": 0, "saturation": 0.5},
-  "contact": "you@example.com"
+  "contact": ""
 }

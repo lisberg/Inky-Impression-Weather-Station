@@ -45,7 +45,9 @@ def fetch_json(url, contact="", session=None):
     if cached and cached.get("expires", 0) > time.time():
         return cached["data"], False
 
-    headers = {"User-Agent": USER_AGENT + ((" " + contact) if contact else "")}
+    if contact.strip().lower().endswith("example.com"):
+        contact = ""  # MET Norway answers 403 to the placeholder address
+    headers = {"User-Agent": USER_AGENT + ((" " + contact.strip()) if contact else "")}
     if cached and cached.get("last_modified"):
         headers["If-Modified-Since"] = cached["last_modified"]
     try:
