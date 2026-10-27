@@ -1,0 +1,48 @@
+STRINGS = {
+    "sv": {
+        "days": ["mån", "tis", "ons", "tor", "fre", "lör", "sön"],
+        "months": ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"],
+        "today": "Idag",
+        "now": "Nu",
+        "updated": "Uppdaterad",
+        "offline": "Ingen anslutning, visar senaste prognos",
+        "error": "Kunde inte hämta väder",
+        "midnight_sun": "Midnattssol",
+        "polar_night": "Polarnatt",
+        "feels": "Vind",
+        "info": "Information",
+        "network": "Nätverk",
+        "no_wifi": "Ingen WiFi",
+        "remote": "Fjärrhjälp",
+        "not_connected": "inte ansluten",
+        "dashboard": "Inställningar",
+        "setup_title": "Anslut väderstationen till WiFi",
+        "setup_steps": ["1. Anslut telefonen till nätverket", "2. Lösenord", "3. Öppna i webbläsaren"],
+        "buttons_help": "A/B byt plats · C byt vy · D uppdatera · håll D: info",
+    },
+    "en": {
+        "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        "today": "Today",
+        "now": "Now",
+        "updated": "Updated",
+        "offline": "Offline, showing last forecast",
+        "error": "Could not fetch weather",
+        "midnight_sun": "Midnight sun",
+        "polar_night": "Polar night",
+        "feels": "Wind",
+        "info": "Information",
+        "network": "Network",
+        "no_wifi": "No WiFi",
+        "remote": "Remote help",
+        "not_connected": "not connected",
+        "dashboard": "Settings",
+        "setup_title": "Connect the weather station to WiFi",
+        "setup_steps": ["1. Join this network on your phone", "2. Password", "3. Open in the browser"],
+        "buttons_help": "A/B location · C layout · D refresh · hold D: info",
+    },
+}
+
+
+def t(lang):
+    return STRINGS.get(lang, STRINGS["en"])

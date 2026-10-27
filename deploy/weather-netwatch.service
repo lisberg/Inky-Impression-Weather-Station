@@ -1,0 +1,13 @@
+[Unit]
+Description=Weather station WiFi fallback hotspot
+After=NetworkManager.service
+Requires=NetworkManager.service
+
+[Service]
+WorkingDirectory=/opt/weather-station
+ExecStart=/opt/weather-station/.venv/bin/python -m station.netwatch
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
