@@ -60,6 +60,17 @@ def test_index_and_preview(env):
     assert png.status_code == 200 and png.data[:4] == b"\x89PNG"
 
 
+def test_dashboard_assets_and_events(env):
+    st, nm, client = env
+    assert client.get("/static/dashboard.css").status_code == 200
+    assert client.get("/static/htmx-2.0.4.min.js").status_code == 200
+    web.capture_events()
+    import logging
+    logging.getLogger("station").warning("hello from the test")
+    page = client.get("/").get_data(as_text=True)
+    assert "data-theme-toggle" in page and "hello from the test" in page
+
+
 def test_cross_site_post_is_rejected(env):
     st, nm, client = env
     assert client.post("/refresh", headers={"Origin": "http://evil.example"}).status_code == 403

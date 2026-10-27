@@ -53,6 +53,7 @@ class Station:
         self.wake = threading.Event()   # set by buttons or the dashboard to redraw now
         self.forecasts = {}             # last good forecast per location
         self.showing_info = False
+        self.last_refresh = None        # epoch seconds of the last frame sent to the panel
         self._actions = []
         self._lock = threading.Lock()
         self.config_lock = threading.RLock()  # buttons and dashboard both rewrite the config
@@ -122,6 +123,7 @@ class Station:
         img = self.frame(cfg, hotspot=hotspot)
         self.display.show(img, rotate=cfg["display"]["rotate"],
                           saturation=cfg["display"]["saturation"])
+        self.last_refresh = time.time()
         return img
 
     def run(self):

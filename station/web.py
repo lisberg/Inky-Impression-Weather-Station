@@ -8,6 +8,10 @@ import io
 import logging
 import secrets
 import threading
+import time
+from collections import deque
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from urllib.parse import urlparse
 
 import requests
@@ -20,6 +24,25 @@ from .providers.base import USER_AGENT
 log = logging.getLogger("web")
 
 GEOCODER = "https://nominatim.openstreetmap.org/search"
+
+EVENTS = deque(maxlen=40)  # newest first, shown on the System tab
+
+
+class EventLog(logging.Handler):
+    """Keeps the station's recent log lines for the dashboard (not the HTTP access log)."""
+
+    def emit(self, record):
+        if record.name == "werkzeug":
+            return
+        EVENTS.appendleft({"time": time.strftime("%H:%M:%S", time.localtime(record.created)),
+                           "level": record.levelname.lower(), "source": record.name.split(".")[-1],
+                           "message": record.getMessage().splitlines()[0]})
+
+
+def capture_events():
+    root = logging.getLogger()
+    if not any(isinstance(h, EventLog) for h in root.handlers):
+        root.addHandler(EventLog(logging.INFO))
 
 TEXT = {
     "sv": {
@@ -42,6 +65,12 @@ TEXT = {
         "not_connected": "inte ansluten", "version": "Version", "saved": "Sparat.",
         "setup_banner": "Stationen saknar WiFi. Välj ett nätverk nedan.",
         "confirm_delete": "Ta bort?",
+        "now_showing": "Visas nu", "updated": "Uppdaterad %s", "not_drawn": "Inte uppritad än",
+        "day": "Dagläge", "night": "Nattläge", "switch": "Byt plats",
+        "theme": "Tema", "theme_auto": "Följ systemet", "theme_light": "Ljust", "theme_dark": "Mörkt",
+        "last_update": "Senaste uppdatering", "signal": "WiFi-signal", "events": "Händelser",
+        "no_events": "Inga händelser än.", "online": "Ansluten", "sections": "Avsnitt",
+        "move": "Flytta",
     },
     "en": {
         "title": "Weather station", "screen": "Screen", "refresh": "Refresh the screen now",
@@ -63,6 +92,12 @@ TEXT = {
         "not_connected": "not connected", "version": "Version", "saved": "Saved.",
         "setup_banner": "The station has no WiFi. Pick a network below.",
         "confirm_delete": "Delete?",
+        "now_showing": "Showing now", "updated": "Updated %s", "not_drawn": "Not drawn yet",
+        "day": "Day mode", "night": "Night mode", "switch": "Switch place",
+        "theme": "Theme", "theme_auto": "Match system", "theme_light": "Light", "theme_dark": "Dark",
+        "last_update": "Last update", "signal": "WiFi signal", "events": "Events",
+        "no_events": "No events yet.", "online": "Connected", "sections": "Sections",
+        "move": "Move",
     },
 }
 
@@ -125,10 +160,20 @@ def create_app(station, wifi_run=wifi.nmcli, geocoder=geocode):
             saved, visible = [], []
             log.warning("wifi listing failed: %s", exc)
         saved_ssids = {n["ssid"] for n in saved}
+        info = netinfo.summary()
+        signal = next((v["signal"] for v in visible if v["ssid"] == info["ssid"]), None)
+        from .app import use_night_theme  # app imports this module when it starts
+        loc = cfgmod.active_location(c)
+        tz = ZoneInfo(loc.get("timezone") or c["timezone"])
+        now = datetime.now(tz)
+        last = station.last_refresh
         return render_template("dashboard.html", c=c, t=t, query=query, results=results,
                                search_error=search_error, saved=saved,
                                visible=[v for v in visible if v["ssid"] not in saved_ssids],
-                               info=netinfo.summary(), version=__version__,
+                               info=info, signal=signal, version=__version__,
+                               night=use_night_theme(c, loc, now),
+                               last_refresh=datetime.fromtimestamp(last, tz).strftime("%H:%M") if last else None,
+                               events=list(EVENTS)[:15], stamp=int(last or 0),
                                providers=cfgmod.PROVIDERS, layouts=cfgmod.LAYOUTS)
 
     @app.get("/preview.png")
@@ -249,6 +294,7 @@ def create_app(station, wifi_run=wifi.nmcli, geocoder=geocode):
 
 
 def serve_in_background(station, port):
+    capture_events()
     app = create_app(station)
 
     def run():
