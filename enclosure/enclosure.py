@@ -34,13 +34,14 @@ class Board:
     pcb_h: float = 123.3      # measured 123.29
     pcb_t: float = 1.62       # measured
     # 7.3" panel module (glass) outline and thickness incl. adhesive. Measured 2026-11-02:
-    # 170 x 105.8, front of glass 3.04 above the back of the board. Width by ruler, not caliper.
-    glass_w: float = 170.0
+    # 168.4 x 105.8 (width = 174.2 - 2.7 left gap - 3.1 right gap), front of glass 3.04 above
+    # the back of the board.
+    glass_w: float = 168.4
     glass_h: float = 105.8
     glass_t: float = 1.42
     # offset of the glass centre from the board centre (+x right, +y up, seen from the front).
     # Measured: glass 2.7 from the left edge and 12.6 from the bottom edge.
-    glass_dx: float = 2.7 + 170.0 / 2 - 174.2 / 2
+    glass_dx: float = 2.7 + 168.4 / 2 - 174.2 / 2
     glass_dy: float = 12.6 + 105.8 / 2 - 123.3 / 2
     # active (image) area and its offset from the board centre. MEASURE.
     active_w: float = 160.0
@@ -51,7 +52,8 @@ class Board:
     hole_inset: float = 3.5
     # rear push buttons A-D, centre positions from the board centre seen from the BACK
     # (+x right when looking at the back), and switch height above the PCB. MEASURE.
-    buttons: tuple = ((-75.0, 22.5), (-75.0, 7.5), (-75.0, -7.5), (-75.0, -22.5))
+    # Measured: D centre 28.65 above the bottom edge, 24.4 between centres. x still a guess.
+    buttons: tuple = tuple((-75.0, 28.65 + 24.4 * k - 123.3 / 2) for k in (3, 2, 1, 0))  # A..D
     button_h: float = 3.5
 
 
