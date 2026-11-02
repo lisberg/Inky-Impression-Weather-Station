@@ -52,8 +52,8 @@ class Board:
     hole_inset: float = 3.5
     # rear push buttons A-D, centre positions from the board centre seen from the BACK
     # (+x right when looking at the back), and switch height above the PCB. MEASURE.
-    # Measured: D centre 28.65 above the bottom edge, 24.4 between centres. x still a guess.
-    buttons: tuple = tuple((-75.0, 28.65 + 24.4 * k - 123.3 / 2) for k in (3, 2, 1, 0))  # A..D
+    # Measured: centres 3.5 in from the side edge, D 28.65 above the bottom edge, 24.4 apart.
+    buttons: tuple = tuple((-174.2 / 2 + 3.5, 28.65 + 24.4 * k - 123.3 / 2) for k in (3, 2, 1, 0))  # A..D
     button_h: float = 3.5
 
 
@@ -194,6 +194,10 @@ def back(p: Params):
     # inside and carries a plunger, at its free end, down to the switch
     pts = _mirror_x(b.buttons)
     for (x, y) in pts:
+        bx = x  # the plunger stays over the switch
+        # buttons near the board edge: slide the tab inwards so its slot stays inside
+        # the pocket, leaving the plunger towards the tab's free end
+        x = x - math.copysign(max(0.0, abs(x) + p.tab_w / 2 + p.tab_slot - (p.pocket_w / 2 - 0.5)), x)
         u = (cq.Workplane("XY").workplane(offset=plate_in - 0.01)
              .center(x, y).rect(p.tab_w + 2 * p.tab_slot, p.tab_h + 2 * p.tab_slot)
              .rect(p.tab_w, p.tab_h).extrude(p.back_t + 0.02))
@@ -206,7 +210,7 @@ def back(p: Params):
                 .rect(p.tab_w, p.tab_h).extrude(p.back_t - p.tab_t + 0.01))
         shell = shell.cut(thin)
         tip_z = p.pcb_back_z + b.button_h + p.plunger_gap
-        plunger = (cq.Workplane("XY").workplane(offset=tip_z).center(x, y)
+        plunger = (cq.Workplane("XY").workplane(offset=tip_z).center(bx, y)
                    .circle(p.plunger_d / 2).extrude(z1 - p.tab_t - tip_z + 0.01))
         shell = shell.union(plunger)
 
@@ -239,6 +243,7 @@ def back(p: Params):
     # labels beside the buttons (towards the middle), debossed into the outside
     # face; text on an XY plane reads correctly when seen from +Z, i.e. from behind
     for label, (x, y) in zip("ABCD", pts):
+        x = x - math.copysign(max(0.0, abs(x) + p.tab_w / 2 + p.tab_slot - (p.pocket_w / 2 - 0.5)), x)
         lx = x - math.copysign(p.tab_w / 2 + p.tab_slot + 4, x)
         shell = shell.cut(cq.Workplane("XY").workplane(offset=z1 - 0.4).center(lx, y)
                           .text(label, 6, 0.41, kind="bold", halign="center", valign="center"))
@@ -364,6 +369,11 @@ def check(parts, p):
     ys = sorted(y for _, y in p.board.buttons)
     web = min(b - a for a, b in zip(ys, ys[1:])) - p.tab_h - 2 * p.tab_slot
     print("plate between button tabs: %.1f mm" % web)
+    bx = max(abs(x) for x, _ in p.board.buttons)
+    shift = max(0.0, bx + p.tab_w / 2 + p.tab_slot - (p.pocket_w / 2 - 0.5))
+    print("plunger from tab centre: %.1f mm (tab half-width %.1f)" % (shift, p.tab_w / 2))
+    if shift > p.tab_w / 2 - p.plunger_d / 2:
+        bad.append(("plunger", "off its tab", shift))
     if web < 2:
         bad.append(("buttons", "too close for tab_h", web))
     head_room = p.total_depth - p.back_t - (p.pcb_back_z + 11 + 4.4)
