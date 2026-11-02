@@ -31,15 +31,17 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 class Board:
     # Pimoroni spec sheet: board 174.2 × 123.2 mm, active area 160 × 96 mm.
     pcb_w: float = 174.2
-    pcb_h: float = 123.2
-    pcb_t: float = 1.6
-    # 7.3" panel module (glass) outline and thickness incl. adhesive. MEASURE.
-    glass_w: float = 170.2
-    glass_h: float = 111.2
-    glass_t: float = 1.6
-    # offset of the glass centre from the board centre (+x right, +y up, seen from the front). MEASURE.
-    glass_dx: float = 0.0
-    glass_dy: float = 0.0
+    pcb_h: float = 123.3      # measured 123.29
+    pcb_t: float = 1.62       # measured
+    # 7.3" panel module (glass) outline and thickness incl. adhesive. Measured 2026-11-02:
+    # 170 x 105.8, front of glass 3.04 above the back of the board. Width by ruler, not caliper.
+    glass_w: float = 170.0
+    glass_h: float = 105.8
+    glass_t: float = 1.42
+    # offset of the glass centre from the board centre (+x right, +y up, seen from the front).
+    # Measured: glass 2.7 from the left edge and 12.6 from the bottom edge.
+    glass_dx: float = 2.7 + 170.0 / 2 - 174.2 / 2
+    glass_dy: float = 12.6 + 105.8 / 2 - 123.3 / 2
     # active (image) area and its offset from the board centre. MEASURE.
     active_w: float = 160.0
     active_h: float = 96.0
