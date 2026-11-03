@@ -12,23 +12,26 @@ for CAD.
 Outside: 193 × 130 × 32 mm. The black bezel leaves only the 160 × 96 mm image
 visible. The window is chamfered 45° so the frame never shades the picture.
 
-## Before you print: measure your board
+## Measurements
 
-The model starts from Pimoroni's published sizes (board 174.2 × 123.2 mm,
-active area 160 × 96 mm), but some things aren't published. Check these with
-calipers and edit the `Board` class at the top of `enclosure.py`:
+The `Board` class at the top of `enclosure.py` holds the board as measured on
+Linus's unit (2025 edition with rear buttons), on top of Pimoroni's published
+board size of 174.2 × 123.2 mm:
 
-| Setting | What to measure | Default |
+| Setting | What it is | Value |
 |---|---|---|
-| `glass_w`, `glass_h`, `glass_t` | outline of the glass panel and its height above the PCB | 170.2 × 111.2, 1.6 |
-| `glass_dx`, `glass_dy` | glass centre minus board centre, seen from the front | 0, 0 |
-| `active_dx`, `active_dy` | image-area centre minus board centre, seen from the front | 0, 0 |
-| `hole_inset` | M2 corner hole centre to board edge | 3.5 |
-| `buttons` | centre of each rear button from the board centre, **seen from the back** | x −75, y ±7.5/±22.5 |
-| `button_h` | button height above the PCB | 3.5 |
+| `pcb_h`, `pcb_t` | board height and thickness | 123.3, 1.62 |
+| `glass_w`, `glass_h`, `glass_t` | glass outline; its thickness above the board | 168.4 × 105.8, 1.42 |
+| `glass_dx`, `glass_dy` | glass centre minus board centre, **seen from the front** | from 2.7 left / 12.6 bottom |
+| `active_w`, `active_h`, `active_dx`, `active_dy` | image area, seen from the front | 160 × 97, from 6.75 left / 16.1 bottom |
+| `hole_inset`, `hole_d` | corner holes: centre to board edge, diameter | 2.5, 2.0 |
+| `buttons` | rear button centres from the board centre, **seen from the back** | 3.5 from the side edge, 24.4 apart |
+| `button_h` | button height above the board | 5.4 |
+| `pi_h` | Pi Zero's highest point above the board | 20 |
+| `usb_x` | Pi's micro-USB socket centre, seen from the front | 80.5 from the right edge to its left side |
 
-The quickest way to get the offsets is to measure from the board's left and
-bottom edges and subtract half the board size. Then run:
+Offsets are written as edge distances in the file, so a re-measure is a matter of
+changing one number. To rebuild:
 
 ```
 pip install cadquery
@@ -61,7 +64,7 @@ isn't reached, reduce `plunger_gap`.
 - 2 × screws with heads up to 8 mm for wall hanging (100 mm apart)
 - Optional: a strip of 1 mm foam tape on the bezel's inner lip, around the glass
 - A micro-USB cable. An angled plug is neatest; the slot in the bottom wall is
-  16 × 12 mm, centred by default (`usb_x`).
+  16 × 12 mm, in line with the Pi's socket (`usb_x`).
 
 ## Assembly
 

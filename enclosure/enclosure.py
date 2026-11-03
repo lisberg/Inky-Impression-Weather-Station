@@ -43,18 +43,23 @@ class Board:
     # Measured: glass 2.7 from the left edge and 12.6 from the bottom edge.
     glass_dx: float = 2.7 + 168.4 / 2 - 174.2 / 2
     glass_dy: float = 12.6 + 105.8 / 2 - 123.3 / 2
-    # active (image) area and its offset from the board centre. MEASURE.
+    # active (image) area and its offset from the board centre.
+    # Measured: 160 x 97, 6.75 from the left edge and 16.1 from the bottom edge.
     active_w: float = 160.0
-    active_h: float = 96.0
-    active_dx: float = 0.0
-    active_dy: float = 0.0
-    # M2 corner holes: distance of hole centre from each board edge. MEASURE.
-    hole_inset: float = 3.5
+    active_h: float = 97.0
+    active_dx: float = 6.75 + 160.0 / 2 - 174.2 / 2
+    active_dy: float = 16.1 + 97.0 / 2 - 123.3 / 2
+    # M2 corner holes: distance of hole centre from each board edge.
+    hole_inset: float = 2.5     # measured; holes are 2.0 mm
+    hole_d: float = 2.0
     # rear push buttons A-D, centre positions from the board centre seen from the BACK
-    # (+x right when looking at the back), and switch height above the PCB. MEASURE.
+    # (+x right when looking at the back), and switch height above the PCB.
     # Measured: centres 3.5 in from the side edge, D 28.65 above the bottom edge, 24.4 apart.
-    buttons: tuple = tuple((-174.2 / 2 + 3.5, 28.65 + 24.4 * k - 123.3 / 2) for k in (3, 2, 1, 0))  # A..D
-    button_h: float = 3.5
+    # On the right seen from the back (the left edge seen from the front) - to confirm.
+    buttons: tuple = tuple((174.2 / 2 - 3.5, 28.65 + 24.4 * k - 123.3 / 2) for k in (3, 2, 1, 0))  # A..D
+    button_h: float = 5.4      # measured, board surface to button top
+    # Pi Zero on its header: board surface to its highest point, SD card included. Measured.
+    pi_h: float = 20.0
 
 
 @dataclass
@@ -82,7 +87,9 @@ class Params:
     plunger_d: float = 4.5
     plunger_gap: float = 0.6    # free travel before the plunger touches the switch
     # USB cable slot in the bottom wall, centre x seen from the FRONT
-    usb_x: float = 0.0
+    # measured: the Pi's micro-USB socket faces the bottom edge; seen from the front its
+    # left side is 80.5 from the board's right edge, so its centre (8 mm wide) is here
+    usb_x: float = 174.2 / 2 - 80.5 + 4.0
     usb_w: float = 16.0
     usb_h: float = 12.0
 
@@ -140,11 +147,11 @@ def bezel(p: Params):
                     .rect(p.pocket_w, p.pocket_h).extrude(p.bezel_depth))
     # glass recess
     body = body.cut(cq.Workplane("XY").workplane(offset=p.face_t)
-                    .center(b.glass_dx, b.glass_dy)
+                    .center(_front_x(b.glass_dx), b.glass_dy)
                     .rect(b.glass_w + 2 * p.fit, b.glass_h + 2 * p.fit).extrude(b.glass_t + 0.01))
     # window over the active area, chamfered 45° outwards so the bezel never shades the image
     m = 0.6
-    win = (cq.Workplane("XY").center(b.active_dx, b.active_dy)
+    win = (cq.Workplane("XY").center(_front_x(b.active_dx), b.active_dy)
            .rect(b.active_w + 2 * m + 2 * p.face_t, b.active_h + 2 * m + 2 * p.face_t)
            .workplane(offset=p.face_t).rect(b.active_w + 2 * m, b.active_h + 2 * m)
            .loft())
@@ -157,9 +164,10 @@ def bezel(p: Params):
     return body
 
 
-def _mirror_x(points):
-    """Back-view coordinates -> model (front-view) coordinates."""
-    return [(-x, y) for x, y in points]
+def _front_x(x):
+    """Front-view x -> model x. The model looks out of the screen along -Z, so its +X
+    points right when the station is seen from the BACK and left seen from the front."""
+    return -x
 
 
 def back(p: Params):
@@ -177,10 +185,11 @@ def back(p: Params):
 
     # posts press the board's corners into the bezel and locate in its M2 holes
     post_len = plate_in - p.pcb_back_z
+    post_r = min(3.0, b.hole_inset + p.fit - 0.2)  # must not reach into the bezel's wall
     posts = (cq.Workplane("XY").workplane(offset=p.pcb_back_z)
-             .pushPoints(p.hole_points()).circle(3.0).extrude(post_len))
+             .pushPoints(p.hole_points()).circle(post_r).extrude(post_len))
     pins = (cq.Workplane("XY").workplane(offset=p.pcb_back_z - 1.2)
-            .pushPoints(p.hole_points()).circle(0.85).extrude(1.2))
+            .pushPoints(p.hole_points()).circle(b.hole_d / 2 - 0.15).extrude(1.2))
     shell = shell.union(posts).union(pins)
 
     # screws: clearance through the side walls, counterbored from the back
@@ -192,7 +201,7 @@ def back(p: Params):
     # flexure buttons: a U-slot frees a tab hinged on its side towards the middle
     # (so neighbouring tabs can sit close together); the tab is thinned from the
     # inside and carries a plunger, at its free end, down to the switch
-    pts = _mirror_x(b.buttons)
+    pts = list(b.buttons)  # given seen from the back, like the model
     for (x, y) in pts:
         bx = x  # the plunger stays over the switch
         # buttons near the board edge: slide the tab inwards so its slot stays inside
@@ -230,14 +239,14 @@ def back(p: Params):
         y = side * (p.pocket_h / 2 + p.end_wall / 2)
         for i in range(-4, 5):
             x = i * 9.0
-            if side == -1 and abs(x - p.usb_x) < p.usb_w / 2 + 4:
+            if side == -1 and abs(x - _front_x(p.usb_x)) < p.usb_w / 2 + 4:
                 continue
             shell = shell.cut(cq.Workplane("XY").workplane(offset=z0 + 6)
                               .center(x, y).rect(2.2, p.end_wall + 0.2).extrude(p.back_depth - 10))
     # USB cable slot in the bottom wall
     slot_z = z0 + 3
     shell = shell.cut(cq.Workplane("XZ").workplane(offset=p.outer_h / 2)
-                      .center(p.usb_x, slot_z + p.usb_h / 2).rect(p.usb_w, p.usb_h)
+                      .center(_front_x(p.usb_x), slot_z + p.usb_h / 2).rect(p.usb_w, p.usb_h)
                       .extrude(p.end_wall + 0.5).edges("|Y").fillet(2.0))
 
     # labels beside the buttons (towards the middle), debossed into the outside
@@ -303,13 +312,13 @@ def dummy_board(p: Params):
            .extrude(b.pcb_t)
            .cut(cq.Workplane("XY").workplane(offset=p.pcb_front_z).pushPoints(p.hole_points())
                 .circle(1.1).extrude(b.pcb_t)))
-    glass = (cq.Workplane("XY").workplane(offset=p.face_t).center(b.glass_dx, b.glass_dy)
+    glass = (cq.Workplane("XY").workplane(offset=p.face_t).center(_front_x(b.glass_dx), b.glass_dy)
              .rect(b.glass_w, b.glass_h).extrude(b.glass_t))
-    keys = (cq.Workplane("XY").workplane(offset=p.pcb_back_z).pushPoints(_mirror_x(b.buttons))
+    keys = (cq.Workplane("XY").workplane(offset=p.pcb_back_z).pushPoints(list(b.buttons))
             .rect(6, 6).extrude(b.button_h))
-    # Pi Zero 2 W (65 × 30) on an ~11 mm header stack, parts up to 3 mm tall
-    pi = (cq.Workplane("XY").workplane(offset=p.pcb_back_z + 11).rect(65, 30)
-          .extrude(1.4 + 3.0))
+    # Pi Zero 2 W (65 × 30) on its header, its highest point pi_h above the board
+    pi = (cq.Workplane("XY").workplane(offset=p.pcb_back_z + b.pi_h - 4.4).rect(65, 30)
+          .extrude(4.4))
     return pcb.union(glass).union(keys).union(pi)
 
 
@@ -376,7 +385,7 @@ def check(parts, p):
         bad.append(("plunger", "off its tab", shift))
     if web < 2:
         bad.append(("buttons", "too close for tab_h", web))
-    head_room = p.total_depth - p.back_t - (p.pcb_back_z + 11 + 4.4)
+    head_room = p.total_depth - p.back_t - (p.pcb_back_z + p.board.pi_h)
     print("room behind the Pi: %.1f mm" % head_room)
     if bad or head_room < 1:
         raise SystemExit("interference: %s" % bad)
