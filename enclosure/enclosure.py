@@ -294,6 +294,21 @@ def stand(p: Params):
     for z in (-half, -3.0, half - 6):
         part = part.union(prism([(c[0] + plate_t * n[0], base_t), top_out, (foot, base_t)], z, 6))
 
+    # cable winder: the base runs on past the ribs and carries two mushroom posts, to
+    # wind spare USB cable around in a loop or figure eight. The cone under each cap
+    # keeps it printable without supports.
+    wx, post_r, post_h, cap_r, cap_t = foot + 20.0, 5.0, 22.0, 9.0, 2.5
+    part = part.union(prism([(foot - 1, 0), (wx + cap_r + 3, 0), (wx + cap_r + 3, base_t),
+                             (foot - 1, base_t)], -half, width))
+    for zc in (-16.0, 16.0):
+        y0 = base_t
+        post = cq.Solid.makeCylinder(post_r, post_h, cq.Vector(wx, y0, zc), cq.Vector(0, 1, 0))
+        cone = cq.Solid.makeCone(post_r, cap_r, cap_r - post_r,
+                                 cq.Vector(wx, y0 + post_h - (cap_r - post_r), zc), cq.Vector(0, 1, 0))
+        cap = cq.Solid.makeCylinder(cap_r, cap_t, cq.Vector(wx, y0 + post_h, zc), cq.Vector(0, 1, 0))
+        part = part.union(cq.Workplane().add(post)).union(cq.Workplane().add(cone)) \
+                   .union(cq.Workplane().add(cap))
+
     # pegs: keyhole entry is 20 mm below the centre, slot 6 mm up from there
     peg_s = p.outer_h / 2 - 20.0 + 6.0
     for zx in (-30.0, 30.0):

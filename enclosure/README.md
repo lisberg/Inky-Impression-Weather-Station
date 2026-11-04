@@ -67,6 +67,8 @@ isn't reached, reduce `plunger_gap`.
   bottom edge of the back plate, 55 mm left of centre seen from the back, clear of
   the stand. Plug it into the Pi first, then press the cable through the notch's
   narrow neck into the round hole, where it stays put.
+- On the desk, wind spare cable around the two posts at the back of the stand
+  (a loop or a figure eight); the mushroom caps keep it from slipping off.
 
 ## Assembly
 
