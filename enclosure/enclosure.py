@@ -86,12 +86,13 @@ class Params:
     tab_t: float = 1.2
     plunger_d: float = 4.5
     plunger_gap: float = 0.6    # free travel before the plunger touches the switch
-    # USB cable slot in the bottom wall, centre x seen from the FRONT
-    # measured: the Pi's micro-USB socket faces the bottom edge; seen from the front its
-    # left side is 80.5 from the board's right edge, so its centre (8 mm wide) is here
-    usb_x: float = 174.2 / 2 - 80.5 + 4.0
-    usb_w: float = 16.0
-    usb_h: float = 12.0
+    # USB cable exit: a keyhole notch at the bottom edge of the back plate, seen from the
+    # BACK. It sits outside the stand (which covers the middle 70 mm) so the cable runs
+    # straight out behind; inside there is ~90 mm between the Pi's socket and the floor
+    # for the plug and the bend. The cable snaps through the narrow neck into the round hole.
+    cable_x: float = -55.0
+    cable_d: float = 4.6        # round hole, for cables up to ~4.5 mm
+    cable_neck: float = 3.2
 
     # derived ---------------------------------------------------------------
     @property
@@ -239,15 +240,16 @@ def back(p: Params):
         y = side * (p.pocket_h / 2 + p.end_wall / 2)
         for i in range(-4, 5):
             x = i * 9.0
-            if side == -1 and abs(x - _front_x(p.usb_x)) < p.usb_w / 2 + 4:
-                continue
             shell = shell.cut(cq.Workplane("XY").workplane(offset=z0 + 6)
                               .center(x, y).rect(2.2, p.end_wall + 0.2).extrude(p.back_depth - 10))
-    # USB cable slot in the bottom wall
-    slot_z = z0 + 3
-    shell = shell.cut(cq.Workplane("XZ").workplane(offset=p.outer_h / 2)
-                      .center(_front_x(p.usb_x), slot_z + p.usb_h / 2).rect(p.usb_w, p.usb_h)
-                      .extrude(p.end_wall + 0.5).edges("|Y").fillet(2.0))
+    # USB cable exit at the bottom of the back plate
+    hole_y = -p.pocket_h / 2 + p.cable_d / 2 + 0.5
+    neck_len = hole_y + p.outer_h / 2
+    shell = shell.cut(cq.Workplane("XY").workplane(offset=plate_in - 0.01)
+                      .center(p.cable_x, hole_y).circle(p.cable_d / 2).extrude(p.back_t + 0.02))
+    shell = shell.cut(cq.Workplane("XY").workplane(offset=plate_in - 0.01)
+                      .center(p.cable_x, hole_y - neck_len / 2 - 0.1)
+                      .rect(p.cable_neck, neck_len + 0.2).extrude(p.back_t + 0.02))
 
     # labels beside the buttons (towards the middle), debossed into the outside
     # face; text on an XY plane reads correctly when seen from +Z, i.e. from behind
@@ -385,6 +387,8 @@ def check(parts, p):
         bad.append(("plunger", "off its tab", shift))
     if web < 2:
         bad.append(("buttons", "too close for tab_h", web))
+    if abs(p.cable_x) < 35.0 + p.cable_d:  # the stand is 70 mm wide
+        bad.append(("cable", "exit behind the stand", p.cable_x))
     head_room = p.total_depth - p.back_t - (p.pcb_back_z + p.board.pi_h)
     print("room behind the Pi: %.1f mm" % head_room)
     if bad or head_room < 1:

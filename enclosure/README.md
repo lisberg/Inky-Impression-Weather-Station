@@ -28,7 +28,7 @@ board size of 174.2 × 123.2 mm:
 | `buttons` | rear button centres from the board centre, **seen from the back** | 3.5 from the side edge, 24.4 apart |
 | `button_h` | button height above the board | 5.4 |
 | `pi_h` | Pi Zero's highest point above the board | 20 |
-| `usb_x` | Pi's micro-USB socket centre, seen from the front | 80.5 from the right edge to its left side |
+| `cable_x` | USB cable exit in the back plate's bottom edge, seen from the back | 55 left of centre |
 
 Offsets are written as edge distances in the file, so a re-measure is a matter of
 changing one number. To rebuild:
@@ -63,8 +63,10 @@ isn't reached, reduce `plunger_gap`.
 - 4 × M3 × 25 socket-head screws
 - 2 × screws with heads up to 8 mm for wall hanging (100 mm apart)
 - Optional: a strip of 1 mm foam tape on the bezel's inner lip, around the glass
-- A micro-USB cable. An angled plug is neatest; the slot in the bottom wall is
-  16 × 12 mm, in line with the Pi's socket (`usb_x`).
+- A micro-USB cable up to about 4.5 mm thick. It leaves through a notch at the
+  bottom edge of the back plate, 55 mm left of centre seen from the back, clear of
+  the stand. Plug it into the Pi first, then press the cable through the notch's
+  narrow neck into the round hole, where it stays put.
 
 ## Assembly
 
