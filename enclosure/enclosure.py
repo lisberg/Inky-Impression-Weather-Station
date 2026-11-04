@@ -91,8 +91,8 @@ class Params:
     # straight out behind; inside there is ~90 mm between the Pi's socket and the floor
     # for the plug and the bend. The cable snaps through the narrow neck into the round hole.
     cable_x: float = -55.0
-    cable_d: float = 4.6        # round hole, for cables up to ~4.5 mm
-    cable_neck: float = 3.2
+    cable_d: float = 6.5        # round hole, for cables up to ~6 mm
+    cable_neck: float = 4.8
 
     # derived ---------------------------------------------------------------
     @property

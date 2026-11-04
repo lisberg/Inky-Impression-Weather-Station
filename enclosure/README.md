@@ -63,7 +63,7 @@ isn't reached, reduce `plunger_gap`.
 - 4 × M3 × 25 socket-head screws
 - 2 × screws with heads up to 8 mm for wall hanging (100 mm apart)
 - Optional: a strip of 1 mm foam tape on the bezel's inner lip, around the glass
-- A micro-USB cable up to about 4.5 mm thick. It leaves through a notch at the
+- A micro-USB cable up to about 6 mm thick. It leaves through a notch at the
   bottom edge of the back plate, 55 mm left of centre seen from the back, clear of
   the stand. Plug it into the Pi first, then press the cable through the notch's
   narrow neck into the round hole, where it stays put.
