@@ -52,6 +52,7 @@ PETG or PLA, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 15 % infill.
 | bezel | front face down (as exported) | none | print it in black or dark grey; the 45° window needs none |
 | back | back plate down (as exported) | none | the button flaps and plungers print straight up |
 | stand | base down | tree supports under the two pegs only | |
+| cable_hook ×2 | on its side (as exported) | none | PETG for the springy tongue; a brim helps |
 
 The button flaps work best in PETG. They're 1.2 mm thick and hinged on the
 side towards the middle. If they feel stiff, reduce `tab_t` to 1.0. If a button
@@ -67,8 +68,11 @@ isn't reached, reduce `plunger_gap`.
   bottom edge of the back plate, 55 mm left of centre seen from the back, clear of
   the stand. Plug it into the Pi first, then press the cable through the notch's
   narrow neck into the round hole, where it stays put.
-- On the desk, wind spare cable around the two posts at the back of the stand
-  (a loop or a figure eight); the mushroom caps keep it from slipping off.
+- Two cable hooks (`cable_hook`, print 2) for winding up spare cable on the desk.
+  They clip into the upper (wall) keyholes: push the peg into the round hole, slide
+  the hook up until the tongue's bump clicks into the hole below. To take one off,
+  lift the bottom of the tongue and slide it down. Leave them off when the station
+  hangs on the wall.
 
 ## Assembly
 

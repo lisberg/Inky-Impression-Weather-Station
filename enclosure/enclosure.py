@@ -123,6 +123,11 @@ class Params:
     def total_depth(self):
         return self.bezel_depth + self.back_depth
 
+    @property
+    def wall_key_y(self):
+        """Centre height of the upper (wall) keyholes' entry holes."""
+        return self.outer_h / 2 - 32
+
     def screw_points(self):
         x = self.pocket_w / 2 + self.side_wall / 2
         y = self.pocket_h / 2 - 12
@@ -226,7 +231,7 @@ def back(p: Params):
 
     # keyholes: upper pair for the wall, lower pair for the stand. The slot runs
     # upwards from the entry hole, so the station drops down onto screw or peg.
-    for (kx, ky, span) in ((0, p.outer_h / 2 - 32, 100.0), (0, -20.0, 60.0)):
+    for (kx, ky, span) in ((0, p.wall_key_y, 100.0), (0, -20.0, 60.0)):
         for sx in (-1, 1):
             cx = kx + sx * span / 2
             key = (cq.Workplane("XY").workplane(offset=plate_in - 0.01)
@@ -294,21 +299,6 @@ def stand(p: Params):
     for z in (-half, -3.0, half - 6):
         part = part.union(prism([(c[0] + plate_t * n[0], base_t), top_out, (foot, base_t)], z, 6))
 
-    # cable winder: the base runs on past the ribs and carries two mushroom posts, to
-    # wind spare USB cable around in a loop or figure eight. The cone under each cap
-    # keeps it printable without supports.
-    wx, post_r, post_h, cap_r, cap_t = foot + 20.0, 5.0, 22.0, 9.0, 2.5
-    part = part.union(prism([(foot - 1, 0), (wx + cap_r + 3, 0), (wx + cap_r + 3, base_t),
-                             (foot - 1, base_t)], -half, width))
-    for zc in (-16.0, 16.0):
-        y0 = base_t
-        post = cq.Solid.makeCylinder(post_r, post_h, cq.Vector(wx, y0, zc), cq.Vector(0, 1, 0))
-        cone = cq.Solid.makeCone(post_r, cap_r, cap_r - post_r,
-                                 cq.Vector(wx, y0 + post_h - (cap_r - post_r), zc), cq.Vector(0, 1, 0))
-        cap = cq.Solid.makeCylinder(cap_r, cap_t, cq.Vector(wx, y0 + post_h, zc), cq.Vector(0, 1, 0))
-        part = part.union(cq.Workplane().add(post)).union(cq.Workplane().add(cone)) \
-                   .union(cq.Workplane().add(cap))
-
     # pegs: keyhole entry is 20 mm below the centre, slot 6 mm up from there
     peg_s = p.outer_h / 2 - 20.0 + 6.0
     for zx in (-30.0, 30.0):
@@ -320,6 +310,49 @@ def stand(p: Params):
                 .chamfer(0.6))
         part = part.union(neck).union(head)
     return part
+
+
+def cable_hook(p: Params):
+    """Clip-in hook for winding spare cable, one per upper keyhole (print two).
+
+    Modelled in the station's back-plate frame for one keyhole at x = 0: the clip's
+    plate lies on the back (z = 0 there, +z outwards) with its peg locked at the top
+    of the keyhole slot. Fitting: push the peg into the round entry hole and slide the
+    clip up 6 mm; a bump on a springy tongue then drops into the entry hole so it
+    can't slide back down. To remove, lift the tongue's lower end and slide down.
+    The hook is a side profile extruded across, so printed on its side it needs no
+    supports."""
+    t, w = 3.0, 20.0                     # plate thickness and width
+    y_lo, y_hi = -32.0, 12.0             # plate extent around the peg (peg at y = 0)
+    plate = cq.Workplane("XY").center(0, (y_lo + y_hi) / 2).rect(w, y_hi - y_lo).extrude(t)
+    plate = plate.edges("|Z").fillet(3.0)
+    # springy tongue below the peg, free at its upper end, bump over the entry hole
+    tw, slot, top = 8.0, 1.0, -2.0
+    u = (cq.Workplane("XY").center(0, (y_lo + 5 + top + slot) / 2)
+         .rect(tw + 2 * slot, top + slot - (y_lo + 5)).extrude(t)
+         .cut(cq.Workplane("XY").center(0, (y_lo + 5 + top) / 2 - 0.01)
+              .rect(tw, top - (y_lo + 5) + 0.02).extrude(t)))
+    hinge = cq.Workplane("XY").center(0, y_lo + 5 + 0.5).rect(tw, 1.02).extrude(t)
+    plate = plate.cut(u.cut(hinge))
+    bump = (cq.Workplane("XY").workplane(offset=0.0).center(0, -6.0).circle(3.0).extrude(-1.2)
+            .faces("<Z").chamfer(0.8))
+    # peg: neck through the back plate, head behind it (same as the stand's pegs)
+    neck = cq.Workplane("XY").circle(1.85).extrude(-(p.back_t + 0.4))
+    head = (cq.Workplane("XY").workplane(offset=-(p.back_t + 0.4)).circle(3.7).extrude(-2.0)
+            .faces("<Z").chamfer(0.6))
+    # J-hook above the peg: an arm straight out, then a lip turned up
+    arm_y0, arm_y1, reach, lip_t, lip_h = 4.0, 10.0, 16.0, 3.0, 9.0
+    prof = (cq.Workplane("YZ")
+            .polyline([(arm_y0, t), (arm_y0, t + reach), (arm_y1 + lip_h, t + reach),
+                       (arm_y1 + lip_h, t + reach - lip_t), (arm_y1, t + reach - lip_t),
+                       (arm_y1, t)]).close().extrude(w / 2, both=True))
+    return plate.union(bump).union(neck).union(head).union(prof)
+
+
+def hooks_on_station(p: Params):
+    """Both hooks in the station's frame, locked in the upper keyholes."""
+    z1 = p.total_depth
+    return [cable_hook(p).val().translate((sx * 50.0, p.wall_key_y + 6.0, z1)) for sx in (-1, 1)]
 
 
 def dummy_board(p: Params):
@@ -341,7 +374,7 @@ def dummy_board(p: Params):
 
 def build(p=None):
     p = p or Params()
-    return {"bezel": bezel(p), "back": back(p), "stand": stand(p)}, p
+    return {"bezel": bezel(p), "back": back(p), "stand": stand(p), "cable_hook": cable_hook(p)}, p
 
 
 def export(parts, p):
@@ -351,6 +384,9 @@ def export(parts, p):
         # print orientation: bezel face down as modelled; back flipped onto its back plate
         if name == "back":
             shape = shape.rotate((0, 0, 0), (1, 0, 0), 180).translate((0, 0, p.total_depth))
+        if name == "cable_hook":  # on its side, so the hook profile is the layer shape
+            shape = shape.rotate((0, 0, 0), (0, 1, 0), 90)
+            shape = shape.translate((0, 0, -shape.BoundingBox().zmin))
         wp = cq.Workplane().add(shape)
         cq.exporters.export(wp, os.path.join(OUT, "%s.step" % name))
         cq.exporters.export(wp, os.path.join(OUT, "%s.3mf" % name), tolerance=0.05, angularTolerance=0.1)
@@ -386,7 +422,19 @@ def check(parts, p):
         print("overlap %-5s / %-5s %8.3f mm³" % (a, b, v))
         if v > 0.01:
             bad.append((a, b, v))
+    hooks = hooks_on_station(p)
+    for i, h in enumerate(hooks):
+        for name in ("back", "board"):
+            v = h.intersect(solids[name]).Volume()
+            print("overlap hook%d / %-5s %8.3f mm³" % (i + 1, name, v))
+            if v > 0.01:
+                bad.append(("hook%d" % (i + 1), name, v))
     st = parts["stand"].val()
+    for i, h in enumerate(station_on_stand(parts, p, extra=hooks)[2:]):
+        v = st.intersect(h).Volume()
+        print("overlap stand / hook%d %8.3f mm³" % (i + 1, v))
+        if v > 0.01:
+            bad.append(("stand", "hook%d" % (i + 1), v))
     for sh, name in zip(station_on_stand(parts, p), ("bezel", "back")):
         v = st.intersect(sh).Volume()
         print("overlap stand / %-5s %8.3f mm³" % (name, v))
