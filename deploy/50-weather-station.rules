@@ -1,0 +1,8 @@
+// Let the weather station's service user manage WiFi through NetworkManager,
+// so the dashboard can add and remove networks without running as root.
+polkit.addRule(function (action, subject) {
+    if (subject.user == "weather" &&
+        action.id.indexOf("org.freedesktop.NetworkManager.") == 0) {
+        return polkit.Result.YES;
+    }
+});

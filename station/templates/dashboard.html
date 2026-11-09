@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="{{ c.language }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="htmx-config" content='{"scrollIntoViewOnBoost": false}'>
+<title>{{ t.title }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}?v={{ version }}">
+<script src="{{ url_for('static', filename='htmx-2.0.4.min.js') }}" defer></script>
+<script>
+  // theme: "" follows the system, "light"/"dark" overrides it; set before paint to avoid a flash
+  (function () {
+    var root = document.documentElement, order = ["", "light", "dark"];
+    try { var saved = localStorage.getItem("theme"); if (saved) root.dataset.theme = saved; } catch (e) {}
+    function current() { return root.dataset.theme || ""; }
+    function label() {
+      document.querySelectorAll("[data-theme-toggle]").forEach(function (b) {
+        b.setAttribute("aria-label", b.dataset["label" + (current() || "auto")]);
+        b.title = b.getAttribute("aria-label");
+      });
+    }
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-theme-toggle]");
+      if (!b) return;
+      var next = order[(order.indexOf(current()) + 1) % order.length];
+      if (next) root.dataset.theme = next; else delete root.dataset.theme;
+      try { localStorage.setItem("theme", next); } catch (e) {}
+      label();
+    });
+    // highlight the tab of the section in view
+    var observer;
+    function spy() {
+      if (observer) observer.disconnect();
+      if (!("IntersectionObserver" in window)) return;
+      observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          document.querySelectorAll("[data-tab]").forEach(function (a) {
+            a.setAttribute("aria-current", a.dataset.tab === en.target.id ? "true" : "false");
+          });
+        });
+      }, { rootMargin: "-40% 0px -55% 0px" });
+      document.querySelectorAll("main > [id], main .cols > [id]").forEach(function (s) { observer.observe(s); });
+    }
+    function init() { label(); spy(); }
+    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("htmx:afterSettle", init);
+  })();
+</script>
+</head>
+{%- macro icon(name, size=20) -%}
+<svg aria-hidden="true" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+{%- if name == 'sun' %}<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+{%- elif name == 'moon' %}<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+{%- elif name == 'auto' %}<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>
+{%- elif name == 'screen' %}<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>
+{%- elif name == 'pin' %}<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>
+{%- elif name == 'sliders' %}<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>
+{%- elif name == 'wifi' %}<path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0"/><circle cx="12" cy="19.5" r="0.8"/>
+{%- elif name == 'cpu' %}<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>
+{%- elif name == 'refresh' %}<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>
+{%- elif name == 'up' %}<path d="M12 19V5M5 12l7-7 7 7"/>
+{%- elif name == 'down' %}<path d="M12 5v14M19 12l-7 7-7-7"/>
+{%- elif name == 'trash' %}<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>
+{%- elif name == 'lock' %}<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+{%- endif %}</svg>
+{%- endmacro -%}
+{%- set tabs = [('screen', t.screen, 'screen'), ('locations', t.locations, 'pin'), ('display', t.display, 'sliders'), ('wifi', t.wifi, 'wifi'), ('system', t.system, 'cpu')] -%}
+<body hx-boost="true">
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <div class="logo">{{ icon('sun', 24) }}</div>
+    <div><strong>{{ t.title }}</strong>
+      <span class="muted">{{ info.hostname }}.local{% if info.ssid %} · {{ info.ssid }}{% endif %}</span></div>
+  </div>
+  <div class="top-right">
+    <nav class="tabs-top" aria-label="{{ t.sections }}">
+      {% for id, label, ic in tabs %}<a href="#{{ id }}" data-tab="{{ id }}" hx-boost="false" aria-current="{{ 'true' if loop.first else 'false' }}">{{ label }}</a>{% endfor %}
+    </nav>
+    <button type="button" class="icon-btn theme-btn" data-theme-toggle
+            data-labelauto="{{ t.theme }}: {{ t.theme_auto }}" data-labellight="{{ t.theme }}: {{ t.theme_light }}"
+            data-labeldark="{{ t.theme }}: {{ t.theme_dark }}" aria-label="{{ t.theme }}">
+      <span class="i-auto">{{ icon('auto') }}</span><span class="i-light">{{ icon('sun') }}</span><span class="i-dark">{{ icon('moon') }}</span>
+    </button>
+  </div>
+</header>
+
+<main class="stack">
+{% if info.hotspot %}<div class="banner">{{ t.setup_banner }}</div>{% endif %}
+{% for category, message in get_flashed_messages(with_categories=true) %}
+  <div class="toast {{ category }}" role="status">{{ message }}</div>
+{% endfor %}
+
+{%- set active = c.locations[c.active_location] %}
+<section id="screen" class="card hero" aria-label="{{ t.screen }}">
+  <div class="panel"><img src="{{ url_for('preview') }}?v={{ stamp }}" alt="{{ t.screen }}: {{ active.name }}" width="800" height="480"></div>
+  <div class="side">
+    <h3 style="margin:0">{{ t.now_showing }}</h3>
+    <div class="place">{{ active.name }}</div>
+    <div class="chips">
+      <span class="chip ok">{{ t.updated % last_refresh if last_refresh else t.not_drawn }}</span>
+      <span class="chip">{{ active.provider|upper }}</span>
+      <span class="chip">{{ t.night if night else t.day }}</span>
+      <span class="chip">{{ t[c.layout] }}</span>
+    </div>
+    {% if c.locations|length > 1 %}
+    <div class="muted">{{ t.switch }}</div>
+    <div class="switcher">
+      {% for loc in c.locations %}
+      <form method="post" action="{{ url_for('location_action', i=loop.index0, action='show') }}">
+        <button class="pill" aria-pressed="{{ 'true' if loop.index0 == c.active_location else 'false' }}">{{ loc.name }}</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('refresh') }}" style="margin-top:auto">
+      <button class="btn-primary" style="width:100%">{{ icon('refresh') }} {{ t.refresh }}</button>
+    </form>
+    <div class="muted">{{ t.refresh_note }}</div>
+  </div>
+</section>
+
+<div class="cols">
+<section id="locations" class="card wide">
+  <div class="card-head"><h2>{{ t.locations }}</h2></div>
+  <div class="list">
+  {% for loc in c.locations %}
+  <div class="item{{ ' active' if loop.index0 == c.active_location }}">
+    <div class="grow"><div class="name">{{ loc.name }}</div>
+      <div class="muted">{{ "%.4f"|format(loc.lat) }}, {{ "%.4f"|format(loc.lon) }}</div></div>
+    <form method="post" action="{{ url_for('location_action', i=loop.index0, action='provider') }}">
+      <input type="hidden" name="anchor" value="#locations">
+      <select class="compact" name="provider" aria-label="{{ t.provider }}: {{ loc.name }}" onchange="this.form.requestSubmit()">{% for p in providers %}<option value="{{ p }}"{% if p == loc.provider %} selected{% endif %}>{{ p|upper }}</option>{% endfor %}</select>
+      <noscript><button class="btn">{{ t.save }}</button></noscript>
+    </form>
+    {% if loop.index0 == c.active_location %}<span class="tag">{{ t.showing }}</span>
+    {% else %}<form method="post" action="{{ url_for('location_action', i=loop.index0, action='show') }}"><button class="btn">{{ t.show }}</button></form>{% endif %}
+    {% if not loop.first %}<form method="post" action="{{ url_for('location_action', i=loop.index0, action='up') }}"><button class="icon-btn" aria-label="{{ t.up }}: {{ loc.name }}">{{ icon('up') }}</button></form>{% endif %}
+    {% if not loop.last %}<form method="post" action="{{ url_for('location_action', i=loop.index0, action='down') }}"><button class="icon-btn" aria-label="{{ t.down }}: {{ loc.name }}">{{ icon('down') }}</button></form>{% endif %}
+    {% if c.locations|length > 1 %}<form method="post" action="{{ url_for('location_action', i=loop.index0, action='delete') }}" hx-confirm="{{ t.confirm_delete }} {{ loc.name }}"><button class="icon-btn" aria-label="{{ t.delete }}: {{ loc.name }}">{{ icon('trash') }}</button></form>{% endif %}
+  </div>
+  {% endfor %}
+  </div>
+
+  <form method="get" action="{{ url_for('index') }}" class="actions" role="search">
+    <label class="sr" for="q">{{ t.search }}</label>
+    <input id="q" name="q" value="{{ query }}" placeholder="{{ t.search }}, {{ t.search_hint }}" style="flex:1 1 220px;width:auto">
+    <button class="btn">{{ t.search }}</button>
+  </form>
+  {% if query %}
+    {% if search_error %}<div class="toast error">{{ search_error }}</div>
+    {% elif not results %}<p class="muted" style="margin:0">{{ t.no_results }}</p>{% endif %}
+    <div class="list">
+    {% for r in results %}
+    <form class="item" method="post" action="{{ url_for('location_add') }}">
+      <div class="grow"><div class="name">{{ r.name }}</div><div class="muted">{{ r.label }}</div></div>
+      <input type="hidden" name="name" value="{{ r.name }}"><input type="hidden" name="lat" value="{{ r.lat }}">
+      <input type="hidden" name="lon" value="{{ r.lon }}"><input type="hidden" name="anchor" value="#locations">
+      <select class="compact" name="provider" aria-label="{{ t.provider }}">{% for p in providers %}<option value="{{ p }}">{{ p|upper }}</option>{% endfor %}</select>
+      <button class="btn-primary">{{ t.add }}</button>
+    </form>
+    {% endfor %}
+    </div>
+  {% endif %}
+  <details>
+    <summary>+ {{ t.manual }}</summary>
+    <form method="post" action="{{ url_for('location_add') }}" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" name="anchor" value="#locations">
+      <div class="grid">
+        <label class="field">{{ t.name }}<input name="name" required></label>
+        <label class="field">{{ t.lat }}<input name="lat" inputmode="decimal" required></label>
+        <label class="field">{{ t.lon }}<input name="lon" inputmode="decimal" required></label>
+        <label class="field">{{ t.provider }}<select name="provider">{% for p in providers %}<option value="{{ p }}">{{ p|upper }}</option>{% endfor %}</select></label>
+      </div>
+      <div class="actions"><button class="btn-primary">{{ t.add }}</button></div>
+    </form>
+  </details>
+</section>
+
+<section id="display" class="card narrow">
+  <h2>{{ t.display }}</h2>
+  <form method="post" action="{{ url_for('settings') }}" style="display:flex;flex-direction:column;gap:16px">
+    <input type="hidden" name="anchor" value="#display">
+    <fieldset><legend>{{ t.layout }}</legend>
+      <div class="seg">{% for l in layouts %}<label><input type="radio" name="layout" value="{{ l }}" {{ 'checked' if c.layout == l }}>{{ t[l] }}</label>{% endfor %}</div>
+    </fieldset>
+    <fieldset><legend>{{ t.night_mode }}</legend>
+      <div class="seg">{% for m in ['auto','on','off'] %}<label><input type="radio" name="night_mode" value="{{ m }}" {{ 'checked' if c.night_mode == m }}>{{ 'Auto' if m == 'auto' else t[m] }}</label>{% endfor %}</div>
+    </fieldset>
+    <div class="grid">
+      <label class="field">{{ t.quiet }}<input type="time" name="quiet_start" value="{{ c.quiet_hours.start }}"></label>
+      <label class="field">{{ t.and }}<input type="time" name="quiet_end" value="{{ c.quiet_hours.end }}"></label>
+      <label class="field">{{ t.refresh_minutes }}<input type="number" name="refresh_minutes" min="5" max="240" value="{{ c.refresh_minutes }}"></label>
+      <label class="field">{{ t.rotate }}<select name="rotate">{% for r in [0, 180] %}<option value="{{ r }}" {{ 'selected' if c.display.rotate == r }}>{{ r }}°</option>{% endfor %}</select></label>
+      <label class="field">{{ t.language }}<select name="language"><option value="sv" {{ 'selected' if c.language == 'sv' }}>Svenska</option><option value="en" {{ 'selected' if c.language == 'en' }}>English</option></select></label>
+      <label class="field">{{ t.contact }}<input type="email" name="contact" value="{{ c.contact }}" autocomplete="email"></label>
+    </div>
+    <div class="actions"><button class="btn-primary">{{ t.save }}</button></div>
+  </form>
+</section>
+</div>
+
+<div class="cols">
+<section id="wifi" class="card wide">
+  <h2>{{ t.wifi }}</h2>
+  <h3>{{ t.saved_networks }}</h3>
+  <div class="list">
+  {% for n in saved %}
+  <div class="item{{ ' active' if n.active }}">
+    <div class="grow"><div class="name">{{ n.ssid }}</div>
+      {% if n.active %}<div class="muted">{{ t.connected }}{% if signal is not none %} · {{ signal }}%{% endif %}</div>{% endif %}</div>
+    <form method="post" action="{{ url_for('wifi_priority') }}">
+      <input type="hidden" name="name" value="{{ n.name }}">
+      <select class="compact" name="priority" aria-label="{{ t.priority }}: {{ n.ssid }}" onchange="this.form.requestSubmit()">{% for p in range(0, 11) %}<option value="{{ p }}" {{ 'selected' if n.priority == p }}>{{ t.priority }} {{ p }}</option>{% endfor %}</select>
+    </form>
+    <form method="post" action="{{ url_for('wifi_delete') }}" hx-confirm="{{ t.confirm_delete }} {{ n.ssid }}">
+      <input type="hidden" name="name" value="{{ n.name }}"><button class="icon-btn" aria-label="{{ t.delete }}: {{ n.ssid }}">{{ icon('trash') }}</button>
+    </form>
+  </div>
+  {% endfor %}
+  </div>
+
+  {% if visible %}<h3>{{ t.visible }}</h3>{% endif %}
+  <div class="list">
+  {% for v in visible[:12] %}
+  <details class="item net" style="display:block">
+    <summary><span class="name">{{ v.ssid }}</span><span class="muted" style="display:inline-flex;align-items:center;gap:6px">{{ v.signal }}%{% if v.secure %} {{ icon('lock', 16) }}{% endif %}</span></summary>
+    <form method="post" action="{{ url_for('wifi_add') }}" style="display:flex;flex-direction:column;gap:12px">
+      <input type="hidden" name="ssid" value="{{ v.ssid }}">
+      {% if v.secure %}<label class="field">{{ t.password }}<input type="password" name="password" minlength="8" maxlength="63" required autocomplete="off"></label>{% endif %}
+      <label class="check"><input type="checkbox" name="connect" value="1" {{ 'checked' if info.hotspot }}> {{ t.connect_now }}</label>
+      <div class="actions"><button class="btn-primary">{{ t.add }}</button></div>
+    </form>
+  </details>
+  {% endfor %}
+  </div>
+
+  <details>
+    <summary>+ {{ t.add_network }}</summary>
+    <form method="post" action="{{ url_for('wifi_add') }}" style="display:flex;flex-direction:column;gap:12px">
+      <div class="grid">
+        <label class="field">{{ t.name }}<input name="ssid" required></label>
+        <label class="field">{{ t.password }}<input type="password" name="password" maxlength="63" autocomplete="off"></label>
+        <label class="field">{{ t.priority }}<input type="number" name="priority" min="0" max="10" value="0"></label>
+      </div>
+      <label class="check"><input type="checkbox" name="connect" value="1"> {{ t.connect_now }}</label>
+      <div class="actions"><button class="btn-primary">{{ t.add }}</button></div>
+    </form>
+  </details>
+</section>
+
+<section id="system" class="card narrow">
+  <h2>{{ t.system }}</h2>
+  <div class="tiles">
+    <div class="tile"><div class="k">{{ t.last_update }}</div><div class="v">{{ last_refresh or '–' }}</div></div>
+    <div class="tile"><div class="k">{{ t.signal }}</div><div class="v">{{ '%d%%'|format(signal) if signal is not none else '–' }}</div></div>
+    <div class="tile"><div class="k">Tailscale</div><div class="v{{ ' ok' if info.tailscale }}">{{ t.online if info.tailscale else t.not_connected }}</div></div>
+    <div class="tile"><div class="k">{{ t.version }}</div><div class="v">{{ version }}</div></div>
+  </div>
+  <dl>
+    <dt>{{ t.hostname }}</dt><dd>{{ info.hostname }}</dd>
+    <dt>WiFi</dt><dd>{{ info.ssid or '–' }}</dd>
+    <dt>IP</dt><dd>{{ info.ips|join(', ') or '–' }}</dd>
+    <dt>{{ t.remote }}</dt><dd>{% if info.tailscale %}{{ info.tailscale.name }} {{ info.tailscale.ip }}{% else %}{{ t.not_connected }}{% endif %}</dd>
+  </dl>
+  <h3>{{ t.events }}</h3>
+  {% if events %}
+  <ul class="log">{% for e in events %}<li class="{{ e.level }}"><span class="t">{{ e.time }}</span>  <span class="s">{{ e.source }}</span> {{ e.message }}</li>{% endfor %}</ul>
+  {% else %}<p class="muted" style="margin:0">{{ t.no_events }}</p>{% endif %}
+</section>
+</div>
+</main>
+</div>
+
+<nav class="tabs-bottom" aria-label="{{ t.sections }}">
+  {% for id, label, ic in tabs %}<a href="#{{ id }}" data-tab="{{ id }}" hx-boost="false" aria-current="{{ 'true' if loop.first else 'false' }}">{{ icon(ic, 22) }}{{ label }}</a>{% endfor %}
+</nav>
+</body>
+</html>
