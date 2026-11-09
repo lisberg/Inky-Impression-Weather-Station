@@ -17,6 +17,9 @@ LAYOUTS = ("overview", "week")
 NIGHT_MODES = ("auto", "on", "off")
 LANGUAGES = ("sv", "en")
 
+# Inky 7.3" boards: 2025 Spectra 6 (E673) and the earlier 7-colour (AC073TC1A)
+DISPLAY_MODELS = ("auto", "spectra73", "impressions73")
+
 DEFAULTS = {
     "locations": [
         {"name": "Stockholm", "lat": 59.3293, "lon": 18.0686, "provider": "yr"},
@@ -30,7 +33,8 @@ DEFAULTS = {
     "night_mode": "auto",
     # no screen refresh in this window (local time, "HH:MM"); empty = never pause
     "quiet_hours": {"start": "", "end": ""},
-    "display": {"rotate": 0, "saturation": 0.5},
+    # model: "auto" reads the board's ID chip; name it if the chip can't be read
+    "display": {"rotate": 0, "saturation": 0.5, "model": "auto"},
     # BCM pins of buttons A-D on the Inky Impression
     "buttons": {"pins": [5, 6, 16, 24], "enabled": True},
     # web dashboard; set a password to require one (user name is ignored)
@@ -80,6 +84,8 @@ def validate(cfg):
             raise ConfigError("%s must be one of %s" % (key, ", ".join(allowed)))
     if not isinstance(cfg.get("refresh_minutes"), (int, float)) or cfg["refresh_minutes"] < 5:
         raise ConfigError("refresh_minutes must be at least 5")
+    if cfg["display"].get("model", "auto") not in DISPLAY_MODELS:
+        raise ConfigError("display.model must be one of %s" % ", ".join(DISPLAY_MODELS))
     if cfg["display"].get("rotate") not in (0, 90, 180, 270):
         raise ConfigError("display.rotate must be 0, 90, 180 or 270")
     if len(str(cfg["setup_hotspot"].get("password", ""))) < 8:

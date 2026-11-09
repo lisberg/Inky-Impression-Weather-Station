@@ -16,11 +16,28 @@ class PngDisplay:
         log.info("wrote %s", self.path)
 
 
+def _inky(model):
+    # imported lazily: only present on the Pi
+    if model == "spectra73":
+        from inky.inky_e673 import Inky
+        return Inky(resolution=(800, 480))
+    if model == "impressions73":
+        from inky.inky_ac073tc1a import Inky
+        return Inky(resolution=(800, 480))
+    from inky.auto import auto
+    try:
+        return auto(ask_user=False, verbose=True)
+    except RuntimeError as exc:
+        # some boards come with a blank or unreadable ID chip; this project is
+        # built for the 2025 Impression 7.3" (Spectra 6), so try that
+        log.warning("%s; assuming an Inky Impression 7.3\" Spectra 6", exc)
+        return _inky("spectra73")
+
+
 class InkyDisplay:
-    def __init__(self):
-        from inky.auto import auto  # imported lazily: only present on the Pi
-        self.inky = auto(ask_user=False, verbose=True)
-        log.info("detected %s %dx%d", type(self.inky).__name__, *self.inky.resolution)
+    def __init__(self, model="auto"):
+        self.inky = _inky(model)
+        log.info("using %s %dx%d", type(self.inky).__name__, *self.inky.resolution)
 
     def show(self, img, rotate=0, saturation=0.5):
         frame = img.rotate(rotate, expand=True)
@@ -33,11 +50,11 @@ class InkyDisplay:
         self.inky.show()
 
 
-def open_display(preview_path=None):
+def open_display(preview_path=None, model="auto"):
     if preview_path:
         return PngDisplay(preview_path)
     try:
-        return InkyDisplay()
+        return InkyDisplay(model)
     except Exception as exc:  # no panel, no library, or not a Pi
         # systemd's RuntimeDirectory is writable; the install folder belongs to root
         path = os.path.join(os.environ.get("RUNTIME_DIRECTORY", "."), "preview.png")

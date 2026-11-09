@@ -161,7 +161,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    station = Station(args.config, open_display(args.preview))
+    model = cfgmod.load(args.config)["display"].get("model", "auto")
+    station = Station(args.config, open_display(args.preview, model))
     if args.once or args.preview:
         station.refresh(hotspot=netinfo.hotspot())
         return
