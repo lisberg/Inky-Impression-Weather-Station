@@ -80,6 +80,11 @@ Do all of this at home, before handing the station over:
    `sudo /opt/weather-station/deploy/add-wifi.sh "Their network" "password"`.
    Saved networks are all remembered, and the station joins whichever is in range.
 3. **Updates.** Later, from anywhere: `ssh <user>@vaderstation sudo /opt/weather-station/deploy/update.sh`.
+4. **A cable as a last resort (optional).**
+   `sudo /opt/weather-station/deploy/usb-gadget.sh && sudo reboot` turns the
+   Pi Zero's data port (marked USB, not PWR) into a network link. With a data
+   cable to a laptop you can then reach it at `ssh <user>@10.55.0.1` and
+   http://10.55.0.1:8080, with no WiFi at all.
 
 If no saved network can be reached for two minutes (new router, changed
 password), the station opens its own WiFi network, **Vaderstation-setup**, and
